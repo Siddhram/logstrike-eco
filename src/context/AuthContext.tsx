@@ -23,7 +23,14 @@ interface UserWithRole extends User {
   role?: 'admin' | 'user';
 }
 
-const AuthContext = createContext<AuthContextType>(null!);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  login: async () => {},
+  register: async () => {},
+  logout: async () => {},
+  isAdmin: false
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserWithRole | null>(null);
@@ -33,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const idTokenResult = await user.getIdTokenResult();
-        const role = idTokenResult.claims.role || 'user';
+        const role = idTokenResult.claims.role as 'admin' | 'user' | undefined || 'user';
         setUser({ ...user, role });
       } else {
         setUser(null);
@@ -44,10 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  const checkUserRole = async (user: User) => {
+    const idTokenResult = await user.getIdTokenResult();
+    return idTokenResult.claims.role as 'admin' | 'user' | undefined || 'user';
+  };
+  
   const login = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const idTokenResult = await userCredential.user.getIdTokenResult();
-    const role = idTokenResult.claims.role || 'user';
+    const role = await checkUserRole(userCredential.user);
     setUser({ ...userCredential.user, role });
   };
 
