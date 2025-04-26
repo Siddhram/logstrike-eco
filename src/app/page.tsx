@@ -7,6 +7,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 // Mock data for featured products
 const featuredProducts = [
@@ -105,7 +112,16 @@ export default function Home() {
   }, []);
 
   if (loading) {
-    return <div className="container mx-auto px-4 py-8">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#111111]">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-[#8B5CF6]/20 rounded-full animate-spin">
+            <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-[#8B5CF6] rounded-full animate-spin"></div>
+          </div>
+          <p className="mt-4 text-[#8B5CF6] text-lg font-medium">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -115,8 +131,24 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-        <div className="container mx-auto px-4 py-20 flex flex-col md:flex-row items-center">
+      <section className="relative text-white overflow-hidden h-[70vh] justify-items-center">
+        {/* Background Video */}
+        <div className="absolute inset-0 w-full h-full">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="object-cover w-full h-full"
+          >
+            <source src="/assets/videos/hero-bg.mp4" type="video/mp4" />
+          </video>
+          {/* Dark overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-indigo-700/70" />
+        </div>
+      
+        {/* Content */}
+        <div className="relative container mx-auto px-4 py-20 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Next-Gen AI Hardware for Your Innovation
@@ -127,7 +159,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-[#8B5CF6] backdrop-blur-sm hover:bg-white/20"
                 onClick={() => router.push('/products')}
               >
                 Shop Now
@@ -135,7 +167,7 @@ export default function Home() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border-white/30"
+                className="w-full sm:w-auto bg-transparent hover:bg-[#8B5CF6] text-white border-white/30 backdrop-blur-sm"
                 onClick={() => router.push('/blog')}
               >
                 Learn More
@@ -143,67 +175,81 @@ export default function Home() {
             </div>
           </div>
           <div className="md:w-1/2 flex justify-center">
-            <div className="relative w-full max-w-md h-80">
-              <img
-                src="https://media.istockphoto.com/id/2183748780/photo/artificial-intelligence.jpg?s=1024x1024&w=is&k=20&c=SSToyScegnkbVgfXpeU-9bQ8DVnUO7WV1U7KWw1oj_c="
-                alt="AI Chip Illustration"
-                className="object-contain w-full h-full"
-              />
-            </div>
+            {/* Right side content removed for cleaner look with video background */}
           </div>
         </div>
       </section>
 
       {/* Categories Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-10 text-center">Shop by Category</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
-              <div 
-                key={index} 
+      <section className="py-20 bg-[#0f0f0f]">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-extrabold text-center mb-10 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-500">
+            Shop by Category
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {categories.slice(0, 3).map((category, index) => (
+              <div
+                key={index}
                 className="group cursor-pointer"
                 onClick={() => router.push(category.link)}
               >
-                <div className="bg-white rounded-lg overflow-hidden shadow-md transition-transform group-hover:shadow-lg group-hover:-translate-y-1">
-                  <div className="relative h-48">
+                <div className="relative rounded-2xl overflow-hidden shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[#8B5CF6]/30 bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-md border border-white/10">
+                  <div className="relative h-64">
                     <img
                       src={category.image}
                       alt={category.name}
-                      className="object-cover w-full h-full"
+                      className="object-cover w-full h-full transition-transform duration-700 scale-105 group-hover:scale-110"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-70 group-hover:opacity-50 transition-all duration-500" />
                   </div>
-                  <div className="p-4 text-center">
-                    <h3 className="text-lg font-semibold">{category.name}</h3>
-                    <p className="mt-2 text-sm text-blue-600 group-hover:underline">
-                      Shop Now →
-                    </p>
+                  <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
+                    <h3 className="text-2xl font-bold text-white mb-4">{category.name}</h3>
+                    <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                      <span className="inline-flex items-center justify-center px-6 py-2 rounded-full bg-[#8B5CF6]/80 hover:bg-[#8B5CF6] text-white font-semibold backdrop-blur-md">
+                        Shop Now
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+
+          // In the categories section, update the button:
+          <div className="flex justify-center">
+            <Link href="/categories" className="w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="w-full bg-transparent hover:bg-[#8B5CF6] text-white border-[#8B5CF6] hover:border-transparent backdrop-blur-sm px-8"
+              >
+                View All Categories
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
+
       {/* Featured Products */}
-      <section className="py-16">
+      <section className="py-16 bg-[#0f0f0f]">
         <div className="container mx-auto px-4">
           <ProductCarousel title="Featured Products" products={featuredProducts} />
         </div>
       </section>
 
       {/* New Arrivals */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-[#111111]">
         <div className="container mx-auto px-4">
           <ProductCarousel title="New Arrivals" products={newArrivals} />
         </div>
       </section>
 
       {/* Why Choose Us */}
-      <section className="py-16">
+      <section className="py-16 bg-[#0f0f0f]">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-12 text-center">Why Choose Us</h2>
+          <h2 className="text-3xl font-bold mb-12 text-center text-white bg-clip-text">Why Choose Us</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
@@ -235,10 +281,10 @@ export default function Home() {
                 ),
               },
             ].map((feature, index) => (
-              <div key={index} className="flex flex-col items-center text-center p-6 bg-white rounded-lg shadow-md">
-                <div className="mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+              <div key={index} className="flex flex-col items-center text-center p-6 bg-[#111111] rounded-lg shadow-xl border border-[#8B5CF6]/20 hover:border-[#8B5CF6]/50 transition-all duration-300">
+                <div className="mb-4 text-[#8B5CF6]">{feature.icon}</div>
+                <h3 className="text-xl font-semibold mb-2 text-white">{feature.title}</h3>
+                <p className="text-gray-400">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -246,14 +292,17 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-blue-600 text-white">
+      <section className="py-16 bg-gradient-to-r from-[#8B5CF6] to-indigo-700 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Accelerate Your AI Projects?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
             Join thousands of AI researchers, engineers, and companies who trust us for their hardware needs.
           </p>
           <Link href="/products">
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
+            <Button 
+              size="lg" 
+              className="bg-white/10 backdrop-blur-sm border border-white/30 text-white hover:bg-white/20 transition-all duration-300"
+            >
               Browse Our Collection
             </Button>
           </Link>

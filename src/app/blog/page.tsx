@@ -137,7 +137,7 @@ export default function BlogPage() {
         {blogPosts.map((post) => (
           <div
             key={post.id}
-            className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            className="bg-[#111111] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
           >
             <div 
               className="relative h-48 cursor-pointer"
@@ -182,7 +182,7 @@ export default function BlogPage() {
       </div>
 
       {/* Newsletter Signup */}
-      <div className="bg-blue-50 rounded-xl p-8 mb-16">
+      <div className="bg-[#111111] rounded-xl p-8 mb-16">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl font-bold mb-4">
             Subscribe to Our Newsletter

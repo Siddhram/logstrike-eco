@@ -15,7 +15,7 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     try {
       await login(email, password);
       router.push('/'); // Redirect to home page after successful login
@@ -25,61 +25,68 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-      
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-          {error}
+    <div className="flex items-center justify-center h-110 bg-[#111111]">
+      <div className="w-full p-8 bg-[#0f0f0f] rounded-lg shadow-md border border-[#8B5CF6]/20">
+        <h2 className="text-3xl font-extrabold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500 mb-6">
+          Login to Your Account
+        </h2>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 bg-[#1A1A1A] border border-[#8B5CF6]/30 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 bg-[#1A1A1A] border border-[#8B5CF6]/30 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent"
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-lg py-3 transition-all duration-300"
+            disabled={loading}
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </Button>
+        </form>
+
+        <div className="mt-4 text-center text-sm text-gray-300">
+          <span>Don't have an account? </span>
+          <button
+            type="button"
+            onClick={() => router.push('/register')}
+            className="text-[#8B5CF6] hover:underline transition-all duration-200"
+          >
+            Register
+          </button>
         </div>
-      )}
-      
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 border rounded-md"
-            required
-          />
-        </div>
-        
-        <div className="mb-6">
-          <label htmlFor="password" className="block text-sm font-medium mb-1">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 border rounded-md"
-            required
-          />
-        </div>
-        
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={loading}
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </Button>
-      </form>
-      
-      <div className="mt-4 text-center text-sm">
-        <button 
-          type="button"
-          onClick={() => router.push('/register')}
-          className="text-blue-600 hover:underline"
-        >
-          Don't have an account? Register
-        </button>
       </div>
     </div>
   );
