@@ -1,80 +1,47 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
+import { useState } from 'react';
 
-interface ProductData {
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  category: string;
-  stock: number;
-}
-
-export default function CreateProductPage() {
-  const router = useRouter();
+export default function AdminPage() {
+  const [productData, setProductData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    image: '',
+    category: '',
+    stock: ''
+  });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-
-    const formData = new FormData(e.currentTarget);
-    const productData: ProductData = {
-      name: formData.get("name") as string,
-      description: formData.get("description") as string,
-      price: parseFloat(formData.get("price") as string),
-      image: formData.get("image") as string,
-      category: formData.get("category") as string,
-      stock: parseInt(formData.get("stock") as string),
-    };
-
-    // Validate required fields
-    if (!productData.name || !productData.description || isNaN(productData.price) || 
-        !productData.image || !productData.category || isNaN(productData.stock)) {
-      setError("Please fill all fields correctly");
-      setLoading(false);
-      return;
-    }
 
     try {
-      const response = await fetch("/api/products", {
-        method: "POST",
+      const response = await fetch('/api/products', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(productData),
       });
-  
-      // Clone the response before reading it
-      const clonedResponse = response.clone();
-      
+
       if (!response.ok) {
-        let errorMessage = "Failed to create product";
-        try {
-          const errorData = await clonedResponse.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch (jsonError) {
-          // Handle non-JSON responses
-          const text = await clonedResponse.text();
-          errorMessage = text.startsWith("<!DOCTYPE") ? 
-            "Server error: Received HTML response" : 
-            text;
-        }
-        throw new Error(errorMessage);
+        throw new Error('Failed to add product');
       }
-  
+
       const data = await response.json();
-      // Handle successful response
-      router.push("/admin/products");
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
+      alert('Product added successfully');
+      setProductData({
+        name: '',
+        description: '',
+        price: '',
+        image: '',
+        category: '',
+        stock: ''
+      });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to add product');
     } finally {
       setLoading(false);
     }
@@ -82,44 +49,104 @@ export default function CreateProductPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Create New Product</h1>
-      
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-4">
+      <h1 className="text-2xl font-bold mb-8">Add New Product</h1>
+      <form onSubmit={handleSubmit} className="max-w-lg space-y-4">
         <div>
-          <label className="block mb-1">Name</label>
-          <Input name="name" required minLength={2} maxLength={100} />
+          <label htmlFor="name" className="block text-sm font-medium mb-1">
+            Product Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            value={productData.name}
+            onChange={(e) => setProductData({ ...productData, name: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
         </div>
-
+        
         <div>
-          <label className="block mb-1">Description</label>
-          <Textarea name="description" required minLength={10} maxLength={1000} />
+          <label htmlFor="description" className="block text-sm font-medium mb-1">
+            Description
+          </label>
+          <textarea
+            id="description"
+            value={productData.description}
+            onChange={(e) => setProductData({ ...productData, description: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
         </div>
-
+        
         <div>
-          <label className="block mb-1">Price</label>
-          <Input name="price" type="number" step="0.01" required min={0} />
+          <label htmlFor="price" className="block text-sm font-medium mb-1">
+            Price
+          </label>
+          <input
+            id="price"
+            type="number"
+            value={productData.price}
+            onChange={(e) => setProductData({ ...productData, price: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
         </div>
-
+        
         <div>
-          <label className="block mb-1">Image URL</label>
-          <Input name="image" type="url" required />
+          <label htmlFor="image" className="block text-sm font-medium mb-1">
+            Image URL
+          </label>
+          <input
+            id="image"
+            type="url"
+            value={productData.image}
+            onChange={(e) => setProductData({ ...productData, image: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
         </div>
-
+        
         <div>
-          <label className="block mb-1">Category</label>
-          <Input name="category" required minLength={2} maxLength={50} />
+          <label htmlFor="category" className="block text-sm font-medium mb-1">
+            Category
+          </label>
+          <select
+            id="category"
+            value={productData.category}
+            onChange={(e) => setProductData({ ...productData, category: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          >
+            <option value="">Select category</option>
+            <option value="CPU">CPU</option>
+            <option value="GPU">GPU</option>
+            <option value="Motherboard">Motherboard</option>
+            <option value="RAM">RAM</option>
+            <option value="Storage">Storage</option>
+          </select>
         </div>
-
+        
         <div>
-          <label className="block mb-1">Stock</label>
-          <Input name="stock" type="number" required min={0} />
+          <label htmlFor="stock" className="block text-sm font-medium mb-1">
+            Stock
+          </label>
+          <input
+            id="stock"
+            type="number"
+            value={productData.stock}
+            onChange={(e) => setProductData({ ...productData, stock: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
         </div>
-
-        {error && <div className="text-red-500">{error}</div>}
-
-        <Button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Create Product"}
-        </Button>
+        
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
+        >
+          {loading ? 'Adding...' : 'Add Product'}
+        </button>
       </form>
     </div>
   );

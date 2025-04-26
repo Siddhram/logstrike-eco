@@ -14,6 +14,7 @@ interface Product {
   image: string;
   category: string;
   rating?: number;
+  stock?: number;
 }
 
 export default function CategoryPage({ params }: { params: { category: string } }) {
@@ -24,29 +25,50 @@ export default function CategoryPage({ params }: { params: { category: string } 
   
   // Unwrap the params Promise
   const unwrappedParams = use(params);
+  const category = unwrappedParams.category;
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const productsCollection = collection(db, 'products');
-        const q = query(productsCollection, where('category', '==', unwrappedParams.category));
-        const querySnapshot = await getDocs(q);
+        // Find the category document
+        const categoryRef = collection(db, 'categories');
+        const categoryQuery = query(categoryRef, where('name', '==', category));
+        const categoryDocs = await getDocs(categoryQuery);
         
-        const productsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Product[];
+        if (categoryDocs.empty) {
+          setProducts([]);
+          return;
+        }
+        
+        const categoryId = categoryDocs.docs[0].id;
+        const productsCollection = collection(db, `categories/${categoryId}/products`);
+        const productsSnapshot = await getDocs(productsCollection);
+        
+        const productsData = productsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            image: data.image,
+            category: category,
+            rating: data.rating,
+            stock: data.stock
+          } as Product;
+        });
         
         setProducts(productsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
+        setProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [unwrappedParams.category]); // Use unwrappedParams.category as dependency
+  }, [category]);
 
   if (loading) {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
@@ -58,11 +80,11 @@ export default function CategoryPage({ params }: { params: { category: string } 
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8 capitalize">{unwrappedParams.category} Products</h1>
+      <h1 className="text-3xl font-bold mb-8 capitalize">{category} Products</h1>
       
       {products.length > 0 ? (
         <ProductCarousel 
-          title={`Featured ${unwrappedParams.category} Products`} 
+          title={`Featured ${category} Products`} 
           products={products} 
         />
       ) : (

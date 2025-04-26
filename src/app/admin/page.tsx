@@ -48,9 +48,10 @@ useEffect(() => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/admin/users');
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch users');
       }
       
       const usersData = await response.json();
@@ -72,22 +73,40 @@ useEffect(() => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const productsCollection = collection(db, 'products');
-        const productsSnapshot = await getDocs(productsCollection);
-        const productsData = productsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setProducts(productsData);
+        setLoading(true);
+        setError(null);
+
+        // Get all categories
+        const categoriesSnapshot = await getDocs(collection(db, 'categories'));
+        const allProducts = [];
+
+        // Fetch products from each category
+        for (const categoryDoc of categoriesSnapshot.docs) {
+          const productsCollection = collection(db, `categories/${categoryDoc.id}/products`);
+          const productsSnapshot = await getDocs(productsCollection);
+          
+          productsSnapshot.forEach(doc => {
+            allProducts.push({
+              id: doc.id,
+              ...doc.data(),
+              category: categoryDoc.data().name
+            });
+          });
+        }
+
+        setProducts(allProducts);
       } catch (error) {
         console.error("Error fetching products:", error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch products');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
-  }, []);
+    if (activeTab === "products") {
+      fetchProducts();
+    }
+  }, [activeTab]);
 
   // Handle product deletion
   const handleDelete = async (productId: string) => {

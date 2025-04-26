@@ -1,12 +1,11 @@
 "use client";
-
+import { use } from 'react';
 import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-import { use } from 'react';
 
 interface Product {
   id: string;
@@ -26,32 +25,37 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Unwrap the params Promise
-  const unwrappedParams = use(params);
+  // Remove the use hook and use params directly
+  const productId = params.id;
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        // Use the unwrapped params
-        const productId = unwrappedParams.id;
-        const productRef = doc(db, 'products', productId);
-        const productSnap = await getDoc(productRef);
+        // Get all categories
+        const categoriesSnapshot = await getDocs(collection(db, 'categories'));
         
-        if (productSnap.exists()) {
-          const productData = productSnap.data();
-          setProduct({
-            id: productSnap.id,
-            name: productData?.name || '',
-            description: productData?.description || '',
-            price: productData?.price || 0,
-            image: productData?.image || '',
-            category: productData?.category || '',
-            stock: productData?.stock || 0,
-            rating: productData?.rating
-          });
-        } else {
-          setError('Product not found');
+        // Search through all categories' products
+        for (const categoryDoc of categoriesSnapshot.docs) {
+          const productRef = doc(db, `categories/${categoryDoc.id}/products`, productId);
+          const productSnap = await getDoc(productRef);
+          
+          if (productSnap.exists()) {
+            const productData = productSnap.data();
+            setProduct({
+              id: productSnap.id,
+              name: productData?.name || '',
+              description: productData?.description || '',
+              price: productData?.price || 0,
+              image: productData?.image || '',
+              category: categoryDoc.data().name || '',
+              stock: productData?.stock || 0,
+              rating: productData?.rating
+            });
+            return;
+          }
         }
+        
+        setError('Product not found');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -60,7 +64,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     };
 
     fetchProduct();
-  }, [unwrappedParams]); // Use unwrappedParams as dependency
+  }, [productId]); // Use productId as dependency
 
   if (loading) return <div className="container mx-auto px-4 py-8">Loading...</div>;
   if (error) return <div className="container mx-auto px-4 py-8 text-red-600">Error: {error}</div>;

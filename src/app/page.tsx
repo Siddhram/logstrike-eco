@@ -62,27 +62,36 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const productsCollection = collection(db, 'products');
-        const productsSnapshot = await getDocs(productsCollection);
-        const productsData = productsSnapshot.docs.map(doc => ({
+        // Fetch categories
+        const categoriesCollection = collection(db, 'categories');
+        const categoriesSnapshot = await getDocs(categoriesCollection);
+        const categoriesData = categoriesSnapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
-        })) as Product[];
+          name: doc.data().name,
+          image: doc.data().image || "https://media.istockphoto.com/id/2183748780/photo/artificial-intelligence.jpg?s=1024x1024&w=is&k=20&c=SSToyScegnkbVgfXpeU-9bQ8DVnUO7WV1U7KWw1oj_c=",
+          link: `/category/${doc.data().name}`
+        }));
 
-        // Get unique categories
-        const uniqueCategories = [ ...new Set(productsData.map(p => p.category))];
-      // console.log(uniqueCategories);
-      
-        setCategories(uniqueCategories.map(category => ({
-          name: category,
-          image: "https://media.istockphoto.com/id/2183748780/photo/artificial-intelligence.jpg?s=1024x1024&w=is&k=20&c=SSToyScegnkbVgfXpeU-9bQ8DVnUO7WV1U7KWw1oj_c=",
-          link: category === 'All' ? '/product' : `/category/${category}`
-        })));
+        setCategories(categoriesData);
+
+        // Fetch products from all categories
+        const allProducts = [];
+        for (const categoryDoc of categoriesSnapshot.docs) {
+          const productsCollection = collection(db, `categories/${categoryDoc.id}/products`);
+          const productsSnapshot = await getDocs(productsCollection);
+          productsSnapshot.forEach(doc => {
+            allProducts.push({
+              id: doc.id,
+              ...doc.data(),
+              category: categoryDoc.data().name
+            });
+          });
+        }
 
         // Set featured products and new arrivals
-        if (productsData.length > 0) {
-          setFeaturedProducts([productsData[0]]); // Only show the first product as featured
-          setNewArrivals([productsData[0]]); // Only show the first product as new arrival
+        if (allProducts.length > 0) {
+          setFeaturedProducts(allProducts.slice(0, 3)); // First 3 as featured
+          setNewArrivals(allProducts.slice(-3).reverse()); // Last 3 as new arrivals
         }
       } catch (error) {
         setError(error instanceof Error ? error.message : 'An error occurred');
