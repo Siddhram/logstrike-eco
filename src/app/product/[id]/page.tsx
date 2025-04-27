@@ -1,5 +1,4 @@
 "use client";
-import { use } from 'react';
 import { useEffect, useState } from 'react';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -25,7 +24,6 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Remove the use hook and use params directly
   const productId = params.id;
 
   useEffect(() => {
@@ -64,11 +62,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     };
 
     fetchProduct();
-  }, [productId]); // Use productId as dependency
-
-  if (loading) return <div className="container mx-auto px-4 py-8">Loading...</div>;
-  if (error) return <div className="container mx-auto px-4 py-8 text-red-600">Error: {error}</div>;
-  if (!product) return <div className="container mx-auto px-4 py-8">Product not found</div>;
+  }, [productId]);
 
   const handleAddToCart = () => {
     if (product) {
@@ -77,11 +71,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         name: product.name,
         price: product.price,
         image: product.image,
-        quantity: 1
+        quantity: 1,
+        category: product.category // Ensure category is included
       });
       alert(`${product.name} added to cart!`);
     }
   };
+
+  if (loading) return <div className="container mx-auto px-4 py-8">Loading...</div>;
+  if (error) return <div className="container mx-auto px-4 py-8 text-red-600">Error: {error}</div>;
+  if (!product) return <div className="container mx-auto px-4 py-8">Product not found</div>;
 
   return (
     <div className="container mx-auto px-4 py-8">

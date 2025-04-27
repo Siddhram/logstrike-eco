@@ -4,13 +4,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC80b-Jnth6H9N72kgZ-qD2Vk-xWcAxneg",
-  authDomain: "logstrike-362b7.firebaseapp.com",
-  projectId: "logstrike-362b7",
-  storageBucket: "logstrike-362b7.firebasestorage.app",
-  messagingSenderId: "136606483960",
-  appId: "1:136606483960:web:8f5e1dd94e10d28c71420d",
-  measurementId: "G-S9V13231R0"
+  apiKey: "AIzaSyDiV4gZZHVfEOQrYfLWZCA3bwyfdnGtE04",
+  authDomain: "cartlog-a15f7.firebaseapp.com",
+  projectId: "cartlog-a15f7",
+  storageBucket: "cartlog-a15f7.firebasestorage.app",
+  messagingSenderId: "1090009888535",
+  appId: "1:1090009888535:web:fb5d2bb86fa2ef1a336952",
+  measurementId: "G-JF3HGE8RWB"
 };
 
 const app = initializeApp(firebaseConfig);

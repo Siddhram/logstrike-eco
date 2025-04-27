@@ -1,12 +1,14 @@
 "use client";
 
-import { useCart } from '@/context/CartContext';
+import { useCart, CartItem } from '@/context/CartContext';
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useState } from "react";
 import { formatPrice } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from '@/components/ui/Button';
+import { doc, updateDoc, increment } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 const stripePromise = loadStripe('pk_test_51QEukkLBvhDT0PxxvAhPvkdUr3qJB8EE2JKBJvHnooYtysH018lh8I89iAYcUgdC3RCY5L6wPGjAGTGjBBFDAffc00RGdRDs5d');
 
 export default function CartPage() {
@@ -30,7 +32,7 @@ export default function CartPage() {
   );
 }
 
-function CartContent({
+const CartContent = ({
   cartItems,
   clearCart,
   total
@@ -38,11 +40,20 @@ function CartContent({
   cartItems: CartItem[],
   clearCart: () => void,
   total: number
-}) {
+}) => {
   const elements = useElements();
   const stripe = useStripe();
   const [loading, setLoading] = useState(false);
   const { updateQuantity, removeFromCart } = useCart();
+
+  // Add this helper function
+  const handleQuantityUpdate = (item: CartItem, newQuantity: number) => {
+    updateQuantity(item.id, newQuantity, item.category)
+      .catch(error => {
+        console.error('Error updating quantity:', error);
+        alert(error.message);
+      });
+  };
 
   const handlePayment = async () => {
     setLoading(true);
@@ -50,39 +61,45 @@ function CartContent({
     try {
       // Convert total to INR (assuming 1 USD = 83 INR)
       const amountInINR = total * 83;
-
+  
       // Send payment request to backend
       const response = await fetch("http://localhost:3001/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: amountInINR }),
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to create payment intent');
       }
-
+  
       const { clientSecret } = await response.json();
-
+  
       // Confirm payment with Stripe
       if (!stripe || !elements) {
         throw new Error('Stripe.js has not yet loaded.');
       }
-
+  
       const cardElement = elements.getElement(CardElement);
-
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardElement,
         },
       });
-
+  
       if (result.error) {
         throw new Error(result.error.message);
       }
-
+  
       if (result.paymentIntent.status === "succeeded") {
-        alert('Payment successful!');
+        // Update product quantities in Firebase
+        await Promise.all(cartItems.map(async (item) => {
+          const productRef = doc(db, `categories/${item.category}/products`, item.id);
+          await updateDoc(productRef, {
+            stock: increment(-item.quantity)
+          });
+        }));
+  
         clearCart();
         window.location.href = '/order-success';
       }
@@ -126,7 +143,7 @@ function CartContent({
                             <div className="flex items-center border rounded-md">
                               <button
                                 className="px-2 py-1 text-black hover:text-gray-800"
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                onClick={() => handleQuantityUpdate(item, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
                               >
                                 -
@@ -134,7 +151,7 @@ function CartContent({
                               <span className="px-2 py-1">{item.quantity}</span>
                               <button
                                 className="px-2 py-1 text-black hover:text-gray-800"
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                onClick={() => handleQuantityUpdate(item, item.quantity + 1)}
                               >
                                 +
                               </button>
