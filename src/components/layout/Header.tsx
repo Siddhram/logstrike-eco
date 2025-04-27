@@ -3,16 +3,24 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
+import { SearchProvider } from '@/components/search/SearchProvider';
+import { SearchBox } from '@/components/search/SearchBox';
+import { SearchResults } from '@/components/search/SearchResults';
 
 export function Header({ categories = [] }: { categories?: { name: string; link: string; image: string }[] }) {
   const { user, logout, isAdmin } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const searchResultsRef = React.useRef<HTMLDivElement>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Searching for:', searchQuery);
+  const handleSearchSubmit = (query: string) => {
+    console.log('Searching for:', query);
+    setShowSearchResults(true); // Show results when submitting
+  };
+
+  const handleSearchFocus = () => {
+    setShowSearchResults(true); // Show results when focusing on search box
   };
 
   const toggleMenu = () => {
@@ -22,6 +30,20 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
   const toggleCategory = () => {
     setIsCategoryOpen(!isCategoryOpen);
   };
+
+  // Close search results when clicking outside
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchResultsRef.current && !searchResultsRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Update the Categories Dropdown section
   return (
@@ -36,28 +58,22 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
             </Link>
 
             {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-8 hidden md:block">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Enter your search key..."
-                  className="w-full p-2.5 pl-4 pr-12 bg-[#1A1A1A] text-[#E5E5E5] placeholder-[#9CA3AF] 
-                           border border-[#D1D5DB] rounded-full focus:outline-none focus:border-[#8B5CF6]
-                           transition-colors"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-0 top-0 h-full px-4 bg-[#8B5CF6] text-white rounded-r-full 
-                           hover:bg-[#7C3AED] transition-colors"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
-              </div>
-            </form>
+            <div className="flex-1 max-w-2xl mx-8 hidden md:block relative" ref={searchResultsRef}>
+              <SearchProvider indexName="products">
+                <div onFocus={handleSearchFocus}>
+                  <SearchBox 
+                    placeholder="Enter your search key..." 
+                    onSubmit={handleSearchSubmit}
+                    className="w-full"
+                  />
+                </div>
+                {showSearchResults && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                    <SearchResults />
+                  </div>
+                )}
+              </SearchProvider>
+            </div>
 
             {/* User Actions */}
             <div className="flex items-center space-x-6">
@@ -103,40 +119,11 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
         </div>
       </header>
 
+      {/* Rest of the component remains the same */}
       {/* Navigation Bar */}
       <nav className="bg-[#8B5CF6] text-white ">
         <div className="container mx-auto px-4 items-center">
           <div className="flex items-center h-12">
-            {/* Categories Dropdown */}
-            {/* <div className="relative group">
-              <button 
-                className="flex items-center h-full px-4 hover:bg-[#7C3AED] transition-colors"
-                onClick={toggleCategory}
-              >
-                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                All Categories
-              </button> */}
-              
-              {/* Dropdown Menu */}
-              {/* <div 
-                className={`absolute left-0 top-full w-56 bg-white rounded-lg shadow-lg py-2 z-50 transition-all duration-200 ${
-                  isCategoryOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
-                }`}
-              >
-                {categories?.map((category, index) => (
-                  <Link
-                    key={index}
-                    href={category.link}
-                    className="flex items-center px-4 py-2 text-gray-700 hover:bg-[#8B5CF6] hover:text-white transition-colors"
-                  >
-                    <span>{category.name}</span>
-                  </Link>
-                ))}
-              </div>
-            </div> */}
-
             {/* Main Navigation */}
             <div className="hidden md:flex items-center h-full ml-120">
               <Link href="/" className="px-4 h-full flex items-center hover:bg-[#7C3AED] transition-colors">
@@ -165,22 +152,20 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t">
           <div className="container mx-auto px-4 py-4">
-            <form onSubmit={handleSearch} className="mb-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search for AI chips..."
-                  className="w-full p-2.5 pl-4 border rounded-md"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+            <SearchProvider indexName="products">
+              <div onFocus={handleSearchFocus}>
+                <SearchBox 
+                  placeholder="Search for AI chips..." 
+                  onSubmit={handleSearchSubmit}
+                  className="mb-4"
                 />
-                <button type="submit" className="absolute right-2 top-2.5">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
               </div>
-            </form>
+              {showSearchResults && (
+                <div className="mb-4 bg-white rounded-lg border border-gray-200">
+                  <SearchResults />
+                </div>
+              )}
+            </SearchProvider>
 
             <nav className="flex flex-col space-y-2">
               <Link href="/" className="p-2 text-gray-700 hover:bg-gray-100 rounded-md">
