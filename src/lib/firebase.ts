@@ -4,13 +4,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, collection, getDocs, query, where, orderBy, limit, DocumentData } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC80b-Jnth6H9N72kgZ-qD2Vk-xWcAxneg",
-  authDomain: "logstrike-362b7.firebaseapp.com",
-  projectId: "logstrike-362b7",
-  storageBucket: "logstrike-362b7.firebasestorage.app",
-  messagingSenderId: "136606483960",
-  appId: "1:136606483960:web:8f5e1dd94e10d28c71420d",
-  measurementId: "G-S9V13231R0"
+  apiKey: "AIzaSyDRAGTRcsymUgzEQRuVbIGpcnZTTzyoCMs",
+  authDomain: "addtocart-45235.firebaseapp.com",
+  projectId: "addtocart-45235",
+  storageBucket: "addtocart-45235.firebasestorage.app",
+  messagingSenderId: "730649414653",
+  appId: "1:730649414653:web:ea6bb0330e8c9f07cc6794",
+  measurementId: "G-WTE29KH5WC"
 };
 
 const app = initializeApp(firebaseConfig);

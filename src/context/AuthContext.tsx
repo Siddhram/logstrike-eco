@@ -46,8 +46,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    
+    // Force refresh the token to get the latest custom claims
+    await userCredential.user.getIdTokenResult(true);
+    
+    // Now get the token result with fresh claims
     const idTokenResult = await userCredential.user.getIdTokenResult();
     const role = idTokenResult.claims.role || 'user';
+    
+    console.log("User role from token:", role);
     setUser({ ...userCredential.user, role });
   };
 

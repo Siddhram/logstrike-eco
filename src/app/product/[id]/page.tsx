@@ -2,10 +2,11 @@
 import { use } from 'react';
 import { useEffect, useState } from 'react';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase'; // Import auth from client Firebase
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+// Remove this import: import { auth } from 'firebase-admin';
 
 interface Product {
   id: string;
@@ -84,6 +85,18 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
   const handleAddToCart = () => {
     if (product) {
+      if (!auth.currentUser) {
+        // If user is not logged in, redirect to login page
+        router.push(`/auth/login?redirect=/product/${product.id}`);
+        return;
+      }
+      
+      // Check if product stock is sufficient
+      if (product.stock <= 0) {
+        alert(`Sorry, ${product.name} is out of stock!`);
+        return;
+      }
+      
       addToCart({
         id: product.id,
         name: product.name,
@@ -91,6 +104,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         image: product.image,
         quantity: 1
       });
+      
       alert(`${product.name} added to cart!`);
     }
   };
