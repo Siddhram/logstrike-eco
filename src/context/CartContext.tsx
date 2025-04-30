@@ -1,10 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { createContext, useContext, useState, useEffect } from 'react';
 
-export interface CartItem {
+interface CartItem {
   id: string;
   name: string;
   price: number;
@@ -13,146 +11,64 @@ export interface CartItem {
 }
 
 interface CartContextType {
-  cartItems: CartItem[];
+  cart: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
-  loading: boolean;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+const CartContext = createContext<CartContextType>({
+  cart: [],
+  addToCart: () => {},
+  removeFromCart: () => {},
+  updateQuantity: () => {},
+});
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Listen for auth state changes
+  // Load cart from localStorage on mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-      } else {
-        setUserId(null);
-        setCartItems([]);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
   }, []);
 
-  // Fetch cart items when userId changes
+  // Save cart to localStorage whenever it changes
   useEffect(() => {
-    const fetchCartItems = async () => {
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/users/${userId}/cart`);
-        if (response.ok) {
-          const data = await response.json();
-          setCartItems(data.items || []);
-        }
-      } catch (error) {
-        console.error('Error fetching cart items:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCartItems();
-  }, [userId]);
-
-  // Save cart items to Firebase whenever they change
-  useEffect(() => {
-    const saveCartItems = async () => {
-      if (!userId || cartItems.length === 0) return;
-
-      try {
-        await fetch(`/api/users/${userId}/cart`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ items: cartItems }),
-        });
-      } catch (error) {
-        console.error('Error saving cart items:', error);
-      }
-    };
-
-    if (userId && !loading) {
-      saveCartItems();
-    }
-  }, [cartItems, userId, loading]);
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
 
   const addToCart = (item: CartItem) => {
-    setCartItems((prevItems) => {
-      const existingItem = prevItems.find((i) => i.id === item.id);
+    setCart(prevCart => {
+      const existingItem = prevCart.find(i => i.id === item.id);
       if (existingItem) {
-        return prevItems.map((i) =>
+        return prevCart.map(i =>
           i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...prevItems, item];
+      return [...prevCart, item];
     });
   };
 
   const removeFromCart = (id: string) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+    setCart(prevCart => prevCart.filter(item => item.id !== id));
   };
 
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(id);
-      return;
-    }
-    
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
+    setCart(prevCart =>
+      prevCart.map(item =>
         item.id === id ? { ...item, quantity } : item
       )
     );
   };
 
-  const clearCart = async () => {
-    setCartItems([]);
-    
-    if (userId) {
-      try {
-        await fetch(`/api/users/${userId}/cart`, {
-          method: 'DELETE',
-        });
-      } catch (error) {
-        console.error('Error clearing cart:', error);
-      }
-    }
-  };
-
   return (
-    <CartContext.Provider
-      value={{
-        cartItems,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        loading
-      }}
-    >
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity }}>
       {children}
     </CartContext.Provider>
   );
 }
 
-export function useCart() {
-  const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-}
+export const useCart = () => useContext(CartContext);

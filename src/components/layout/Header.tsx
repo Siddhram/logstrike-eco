@@ -6,17 +6,24 @@ import { Button } from '@/components/ui/Button';
 import { SearchProvider } from '@/components/search/SearchProvider';
 import { SearchBox } from '@/components/search/SearchBox';
 import { SearchResults } from '@/components/search/SearchResults';
+import { usePathname } from 'next/navigation';
 
 export function Header({ categories = [] }: { categories?: { name: string; link: string; image: string }[] }) {
+  const pathname = usePathname();
   const { user, logout, isAdmin } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const searchResultsRef = React.useRef<HTMLDivElement>(null);
 
+  // Move the isActiveLink function here, before it's used
+  const isActiveLink = (path: string) => {
+    return pathname === path ? 'bg-[#7C3AED]' : '';
+  };
+
   const handleSearchSubmit = (query: string) => {
     console.log('Searching for:', query);
-    setShowSearchResults(true); // Show results when submitting
+    setShowSearchResults(true);
   };
 
   const handleSearchFocus = () => {
@@ -76,10 +83,9 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
             </div>
 
             {/* User Actions */}
-            <div className="flex items-center space-x-6">
-              <Link href="/cart" className="relative flex items-center group">
-                <svg className="h-6 w-6 text-[#E5E5E5] group-hover:text-[#8B5CF6] transition-colors" 
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <div className="flex items-center space-x-4">
+              <Link href="/cart" className="relative flex items-center">
+                <svg className="h-6 w-6 text-[#E5E5E5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                         d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
@@ -88,31 +94,22 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
                 </span>
               </Link>
 
-              {user ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-white">{user.displayName}</span>
-                  <button
-                    onClick={logout}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-200"
-                  >
-                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-3">
-                  <Link href="/login"
-                        className="px-4 py-2 text-sm font-medium text-[#8B5CF6] hover:text-white border border-[#8B5CF6] hover:bg-[#8B5CF6] rounded-lg transition-all duration-200">
-                    Login
-                  </Link>
-                  <Link href="/register"
-                        className="px-4 py-2 text-sm font-medium text-white bg-[#8B5CF6] hover:bg-[#7C3AED] rounded-lg transition-all duration-200">
-                    Sign Up
-                  </Link>
-                </div>
+              {isAdmin && (
+                <Link 
+                  href="/admin"
+                  className="px-4 py-2 text-sm font-medium text-white bg-[#8B5CF6] rounded-md"
+                >
+                  Admin
+                </Link>
+              )}
+
+              {user && (
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md"
+                >
+                  Logout
+                </button>
               )}
             </div>
           </div>
@@ -120,35 +117,42 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
       </header>
 
       {/* Rest of the component remains the same */}
-      {/* Navigation Bar */}
-      <nav className="bg-[#8B5CF6] text-white ">
-        <div className="container mx-auto px-4 items-center">
-          <div className="flex items-center h-12">
-            {/* Main Navigation */}
-            <div className="hidden md:flex items-center h-full ml-120">
-              <Link href="/" className="px-4 h-full flex items-center hover:bg-[#7C3AED] transition-colors">
+      {/* Navigation Bar with active states */}
+      <nav className="bg-[#8B5CF6] text-white">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-12">
+            <div className="flex items-center space-x-6">
+              <Link 
+                href="/" 
+                className={`hover:bg-[#7C3AED] px-4 py-3 ${isActiveLink('/')}`}
+              >
                 HOME
               </Link>
-              <Link href="/products" className="px-4 h-full flex items-center hover:bg-[#7C3AED] transition-colors">
+              <Link 
+                href="/products" 
+                className={`hover:bg-[#7C3AED] px-4 py-3 ${isActiveLink('/shop')}`}
+              >
                 SHOP
               </Link>
-              <Link href="/blog" className="px-4 h-full flex items-center hover:bg-[#7C3AED] transition-colors">
+              <Link 
+                href="/blog" 
+                className={`hover:bg-[#7C3AED] px-4 py-3 ${isActiveLink('/blog')}`}
+              >
                 BLOG
               </Link>
-              <Link href="/contact" className="px-4 h-full flex items-center hover:bg-[#7C3AED] transition-colors">
+              <Link 
+                href="/contact" 
+                className={`hover:bg-[#7C3AED] px-4 py-3 ${isActiveLink('/contact')}`}
+              >
                 CONTACT
               </Link>
             </div>
-
-            {/* Free Shipping Notice */}
-            <div className="hidden md:block ml-auto text-sm">
-              Free Shipping on Orders $50+
-            </div>
+            <div className="text-sm">Free Shipping on Orders $50+</div>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile menu with active states */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t">
           <div className="container mx-auto px-4 py-4">
@@ -168,16 +172,28 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
             </SearchProvider>
 
             <nav className="flex flex-col space-y-2">
-              <Link href="/" className="p-2 text-gray-700 hover:bg-gray-100 rounded-md">
+              <Link 
+                href="/" 
+                className={`p-2 text-gray-700 hover:bg-gray-100 rounded-md ${pathname === '/' ? 'bg-gray-100' : ''}`}
+              >
                 Home
               </Link>
-              <Link href="/products" className="p-2 text-gray-700 hover:bg-gray-100 rounded-md">
+              <Link 
+                href="/products" 
+                className={`p-2 text-gray-700 hover:bg-gray-100 rounded-md ${pathname === '/products' ? 'bg-gray-100' : ''}`}
+              >
                 Shop
               </Link>
-              <Link href="/blog" className="p-2 text-gray-700 hover:bg-gray-100 rounded-md">
+              <Link 
+                href="/blog" 
+                className={`p-2 text-gray-700 hover:bg-gray-100 rounded-md ${pathname === '/blog' ? 'bg-gray-100' : ''}`}
+              >
                 Blog
               </Link>
-              <Link href="/contact" className="p-2 text-gray-700 hover:bg-gray-100 rounded-md">
+              <Link 
+                href="/contact" 
+                className={`p-2 text-gray-700 hover:bg-gray-100 rounded-md ${pathname === '/contact' ? 'bg-gray-100' : ''}`}
+              >
                 Contact
               </Link>
               {isAdmin && (

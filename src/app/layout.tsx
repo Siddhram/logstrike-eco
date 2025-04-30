@@ -4,7 +4,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
-import { CartProvider } from '@/context/CartContext';
+import { CartProvider } from "@/context/CartContext";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,13 +28,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <AuthProvider>
           <CartProvider>
             <Header />
             <main>{children}</main>
             <Footer />
+            <Toaster position="top-right" />
           </CartProvider>
         </AuthProvider>
       </body>

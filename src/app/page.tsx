@@ -131,7 +131,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative text-white overflow-hidden h-[70vh] justify-items-center">
+      <section className="relative text-white overflow-hidden h-screen">
         {/* Background Video */}
         <div className="absolute inset-0 w-full h-full">
           <video
@@ -143,43 +143,74 @@ export default function Home() {
           >
             <source src="/assets/videos/hero-bg.mp4" type="video/mp4" />
           </video>
-          {/* Dark overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-indigo-700/70" />
+          {/* Enhanced gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-[#8B5CF6]/30" />
         </div>
-      
+        
         {/* Content */}
-        <div className="relative container mx-auto px-4 py-20 flex flex-col md:flex-row items-center">
-          <div className="md:w-1/2 mb-10 md:mb-0">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+        <div className="relative container mx-auto px-4 h-full flex items-center">
+          <div className="max-w-3xl">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-[#8B5CF6]">
               Next-Gen AI Hardware for Your Innovation
             </h1>
-            <p className="text-xl mb-8">
+            <p className="text-xl md:text-2xl mb-8 text-gray-200 max-w-2xl">
               Discover cutting-edge AI chips and accelerators to power your machine learning projects and AI applications.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto bg-[#8B5CF6] backdrop-blur-sm hover:bg-white/20"
+                className="w-full sm:w-auto bg-[#8B5CF6] hover:bg-[#7C3AED] text-lg px-8 py-6"
                 onClick={() => router.push('/products')}
               >
-                Shop Now
+                Explore Products
               </Button>
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="w-full sm:w-auto bg-transparent hover:bg-[#8B5CF6] text-white border-white/30 backdrop-blur-sm"
+                className="w-full sm:w-auto border-2 hover:bg-white/10 text-white border-white/50 text-lg px-8 py-6"
                 onClick={() => router.push('/blog')}
               >
                 Learn More
               </Button>
             </div>
+            
+            {/* Added stats */}
+            <div className="mt-12 grid grid-cols-3 gap-8 max-w-2xl">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-[#8B5CF6]">500+</div>
+                <div className="text-sm text-gray-300 mt-1">Products</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-[#8B5CF6]">10K+</div>
+                <div className="text-sm text-gray-300 mt-1">Happy Customers</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-[#8B5CF6]">24/7</div>
+                <div className="text-sm text-gray-300 mt-1">Support</div>
+              </div>
+            </div>
           </div>
-          <div className="md:w-1/2 flex justify-center">
-            {/* Right side content removed for cleaner look with video background */}
-          </div>
+        </div>
+
+        {/* Added scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <svg 
+            className="w-6 h-6 text-white/70" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            />
+          </svg>
         </div>
       </section>
 
+      {/* Rest of the sections remain the same */}
       {/* Categories Section */}
       <section className="py-20 bg-[#0f0f0f]">
         <div className="container mx-auto px-6">
@@ -192,7 +223,7 @@ export default function Home() {
               <div
                 key={index}
                 className="group cursor-pointer"
-                onClick={() => router.push(category.link)}
+                onClick={() => router.push(`/product?category=${encodeURIComponent(category.name)}`)}
               >
                 <div className="relative rounded-2xl overflow-hidden shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[#8B5CF6]/30 bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-md border border-white/10">
                   <div className="relative h-64">
@@ -206,7 +237,13 @@ export default function Home() {
                   <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
                     <h3 className="text-2xl font-bold text-white mb-4">{category.name}</h3>
                     <div className="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                      <span className="inline-flex items-center justify-center px-6 py-2 rounded-full bg-[#8B5CF6]/80 hover:bg-[#8B5CF6] text-white font-semibold backdrop-blur-md">
+                      <span 
+                        className="inline-flex items-center justify-center px-6 py-2 rounded-full bg-[#8B5CF6]/80 hover:bg-[#8B5CF6] text-white font-semibold backdrop-blur-md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/product?category=${encodeURIComponent(category.name)}`);
+                        }}
+                      >
                         Shop Now
                       </span>
                     </div>
@@ -216,13 +253,13 @@ export default function Home() {
             ))}
           </div>
 
-          // In the categories section, update the button:
           <div className="flex justify-center">
-            <Link href="/categories" className="w-full sm:w-auto">
+            <Link href="/category" className="w-full sm:w-auto">
               <Button 
                 variant="outline" 
                 size="lg"
                 className="w-full bg-transparent hover:bg-[#8B5CF6] text-white border-[#8B5CF6] hover:border-transparent backdrop-blur-sm px-8"
+                onClick={() => router.push('/category')}
               >
                 View All Categories
               </Button>

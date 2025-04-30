@@ -1,12 +1,11 @@
 "use client";
-import { use } from 'react';
+
 import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase'; // Import auth from client Firebase
+import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/Button';
-import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-// Remove this import: import { auth } from 'firebase-admin';
 
 interface Product {
   id: string;
@@ -19,53 +18,62 @@ interface Product {
   rating?: number;
 }
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
+export default function ProductDetailPage() {
+  const params = useParams();
   const router = useRouter();
   const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Remove the use hook and use params directly
-  const productId = params.id;
-
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        // Get all categories
-        const categoriesSnapshot = await getDocs(collection(db, 'categories'));
+        if (!params.id) return;
+
+        // Try direct products collection first
+        const productRef = doc(db, 'products', params.id as string);
+        const productSnap = await getDoc(productRef);
+
+        if (productSnap.exists()) {
+          setProduct({
+            id: productSnap.id,
+            ...productSnap.data() as Product
+          });
+          setLoading(false);
+          return;
+        }
+
+        // If not found, try categories
+        const categoriesCollection = collection(db, 'categories');
+        const categoriesSnapshot = await getDocs(categoriesCollection);
         
-        // Search through all categories' products
         for (const categoryDoc of categoriesSnapshot.docs) {
-          const productRef = doc(db, `categories/${categoryDoc.id}/products`, productId);
-          const productSnap = await getDoc(productRef);
+          const productDoc = doc(db, `categories/${categoryDoc.id}/products/${params.id}`);
+          const productSnapshot = await getDoc(productDoc);
           
-          if (productSnap.exists()) {
-            const productData = productSnap.data();
+          if (productSnapshot.exists()) {
             setProduct({
-              id: productSnap.id,
-              name: productData?.name || '',
-              description: productData?.description || '',
-              price: productData?.price || 0,
-              image: productData?.image || '',
-              category: categoryDoc.data().name || '',
-              stock: productData?.stock || 0,
-              rating: productData?.rating
-            });
+              id: productSnapshot.id,
+              ...productSnapshot.data(),
+              category: categoryDoc.data().name
+            } as Product);
+            setLoading(false);
             return;
           }
         }
         
         setError('Product not found');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        setError('Failed to fetch product details');
         setLoading(false);
       }
     };
 
     fetchProduct();
-  }, [productId]); // Use productId as dependency
+  }, [params.id]);
 
   if (loading) {
     return (
@@ -85,18 +93,6 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
   const handleAddToCart = () => {
     if (product) {
-      if (!auth.currentUser) {
-        // If user is not logged in, redirect to login page
-        router.push(`/auth/login?redirect=/product/${product.id}`);
-        return;
-      }
-      
-      // Check if product stock is sufficient
-      if (product.stock <= 0) {
-        alert(`Sorry, ${product.name} is out of stock!`);
-        return;
-      }
-      
       addToCart({
         id: product.id,
         name: product.name,
@@ -104,10 +100,33 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         image: product.image,
         quantity: 1
       });
-      
       alert(`${product.name} added to cart!`);
     }
   };
+
+  const handleShopNow = async () => {
+    if (product) {
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        quantity: 1
+      });
+      // Wait for state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      router.push('/cart');
+    }
+  };
+  
+  // In the JSX
+  <Button 
+    size="lg" 
+    className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all duration-300"
+    onClick={handleShopNow}
+  >
+    Shop Now
+  </Button>
 
   return (
     <div className="min-h-screen bg-[#111111] py-12">
@@ -145,7 +164,10 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               <Button 
                 size="lg" 
                 className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all duration-300"
-                onClick={() => router.push('/cart')}
+                onClick={() => {
+                  handleAddToCart();
+                  setTimeout(() => router.push('/cart'), 100); // Delay navigation
+                }}
               >
                 Shop Now
               </Button>

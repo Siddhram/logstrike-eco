@@ -1,5 +1,8 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useCart } from "@/context/CartContext";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -14,9 +17,24 @@ interface ProductCardProps extends Product {
   onClick: () => void;
 }
 
-export function ProductCard({ id, name, description, price, image, rating, onClick }: ProductCardProps) {
+export function ProductCard({ id, name, description, price, image, rating }: ProductCardProps) {
+  const router = useRouter();
+  const { addToCart } = useCart();
+
+  const handleViewDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('Navigating to product with ID:', id);
+    router.push(`/product/${id}`);
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart({ id, name, price, image });
+    toast.success("Added to cart!");
+  };
+
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-lg cursor-pointer" onClick={onClick}>
+    <Card className="overflow-hidden transition-all hover:shadow-lg">
       <div className="aspect-square relative overflow-hidden">
         <img
           src={image}
@@ -40,13 +58,17 @@ export function ProductCard({ id, name, description, price, image, rating, onCli
         <div className="mt-3 font-bold text-lg">${price.toFixed(2)}</div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex gap-2">
-        <Button className="w-full" variant="default">
+        <Button 
+          className="w-full" 
+          variant="default"
+          onClick={handleAddToCart}
+        >
           Add to Cart
         </Button>
         <Button 
           variant="outline" 
           className="w-full"
-          onClick={onClick}
+          onClick={handleViewDetails}
         >
           View Details
         </Button>

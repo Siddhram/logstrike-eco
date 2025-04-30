@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { ProductCard } from '@/components/product/ProductCard';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface Product {
   id: string;
@@ -15,6 +17,8 @@ interface Product {
 
 export default function ProductPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryFilter = searchParams.get('category');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,15 +30,32 @@ export default function ProductPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        console.log("Fetching products from API...");
-        const response = await fetch('/api/products');
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch products');
+        setLoading(true);
+        if (categoryFilter) {
+          const categoriesRef = collection(db, 'categories');
+          const categoriesSnapshot = await getDocs(categoriesRef);
+          const categoryDoc = categoriesSnapshot.docs.find(
+            doc => doc.data().name.toLowerCase() === categoryFilter.toLowerCase()
+          );
+
+          if (categoryDoc) {
+            const productsRef = collection(db, `categories/${categoryDoc.id}/products`);
+            const productsSnapshot = await getDocs(productsRef);
+            const productsData = productsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              category: categoryFilter
+            }));
+            setProducts(productsData);
+          }
+        } else {
+          const response = await fetch('/api/products');
+          if (!response.ok) {
+            throw new Error('Failed to fetch products');
+          }
+          const data = await response.json();
+          setProducts(data);
         }
-        const data = await response.json();
-        console.log("Products received:", data.length);
-        setProducts(data);
       } catch (err) {
         console.error("Fetch error:", err);
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -44,7 +65,7 @@ export default function ProductPage() {
     };
 
     fetchProducts();
-  }, []);
+  }, [categoryFilter]);
 
   if (loading) {
     return (
@@ -65,7 +86,9 @@ export default function ProductPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Our Products</h1>
+      <h1 className="text-3xl font-bold mb-8 text-white">
+        {categoryFilter ? `${categoryFilter} Products` : 'Our Products'}
+      </h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {products.map((product) => (
           <ProductCard 

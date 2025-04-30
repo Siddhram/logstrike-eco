@@ -82,4 +82,14 @@ export async function searchProducts(searchQuery: string): Promise<Product[]> {
   }
 }
 
+// Add this function to firebase.ts
+export async function fetchProductsByCategory(categoryId: string) {
+  const productsRef = collection(db, `categories/${categoryId}/products`);
+  const snapshot = await getDocs(productsRef);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
+
 export { auth, db };
