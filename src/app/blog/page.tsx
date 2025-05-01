@@ -76,46 +76,15 @@ export default function BlogPage() {
   const router = useRouter();
   
   return (
-    <div className="container mx-auto px-4 py-16">
+    <div className="container mx-auto px-4 py-16 bg-black text-white">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">AI Chip Blog</h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold mb-4 text-white">AI Chip Blog</h1>
+        <p className="text-xl text-gray-400 max-w-2xl mx-auto">
           Stay updated with the latest news, trends, and insights in AI hardware
           and machine learning acceleration.
         </p>
       </div>
-
-      {/* Featured Post */}
-      <div className="mb-16">
-        <div className="relative rounded-xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
-          <img
-            src="https://media.istockphoto.com/id/2183748780/photo/artificial-intelligence.jpg?s=1024x1024&w=is&k=20&c=SSToyScegnkbVgfXpeU-9bQ8DVnUO7WV1U7KWw1oj_c="
-            alt="Featured post"
-            className="w-full h-[500px] object-cover"
-          />
-          <div className="absolute bottom-0 left-0 right-0 p-8 z-20">
-            <div className="flex items-center mb-4">
-              <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                Featured
-              </span>
-              <span className="ml-3 text-white text-sm">May 20, 2023</span>
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-4">
-              The Next Generation of AI Hardware: What's Coming in 2024
-            </h2>
-            <p className="text-gray-200 mb-6 max-w-3xl">
-              Get an exclusive preview of the upcoming AI hardware innovations
-              that will shape the industry in the coming year, from quantum
-              accelerators to neuromorphic computing.
-            </p>
-            <Button onClick={() => router.push('/blog/next-gen-ai-hardware')}>
-              Read Article
-            </Button>
-          </div>
-        </div>
-      </div>
-
+  
       {/* Category Filter */}
       <div className="flex flex-wrap gap-2 mb-12">
         {categories.map((category) => (
@@ -123,21 +92,21 @@ export default function BlogPage() {
             key={category}
             className={`px-4 py-2 rounded-full text-sm font-medium ${
               category === "All"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                ? "bg-[#B146FF] text-white"
+                : "bg-[#111111] text-gray-300 hover:bg-[#1a1a1a]"
             }`}
           >
             {category}
           </button>
         ))}
       </div>
-
+  
       {/* Blog Posts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
         {blogPosts.map((post) => (
           <div
             key={post.id}
-            className="bg-[#111111] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            className="bg-[#111111] rounded-xl overflow-hidden shadow-lg hover:shadow-[#B146FF]/10 transition-shadow border border-[#B146FF]/10"
           >
             <div 
               className="relative h-48 cursor-pointer"
@@ -151,27 +120,27 @@ export default function BlogPage() {
             </div>
             <div className="p-6">
               <div className="flex items-center mb-2">
-                <span className="text-sm font-medium text-blue-600">
+                <span className="text-sm font-medium text-[#B146FF]">
                   {post.category}
                 </span>
-                <span className="mx-2 text-gray-300">•</span>
-                <span className="text-sm text-gray-500">{post.date}</span>
+                <span className="mx-2 text-gray-500">•</span>
+                <span className="text-sm text-gray-400">{post.date}</span>
               </div>
               <h3 
-                className="text-xl font-bold mb-2 hover:text-blue-600 cursor-pointer"
+                className="text-xl font-bold mb-2 text-white hover:text-[#B146FF] cursor-pointer"
                 onClick={() => router.push(`/blog/${post.id}`)}
               >
                 {post.title}
               </h3>
-              <p className="text-gray-600 mb-4">{post.excerpt}</p>
+              <p className="text-gray-400 mb-4">{post.excerpt}</p>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full mr-2"></div>
-                  <span className="text-sm font-medium">{post.author}</span>
+                  <div className="w-8 h-8 bg-[#1a1a1a] rounded-full mr-2"></div>
+                  <span className="text-sm font-medium text-gray-300">{post.author}</span>
                 </div>
                 <button
                   onClick={() => router.push(`/blog/${post.id}`)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  className="text-[#B146FF] hover:text-[#9333EA] text-sm font-medium"
                 >
                   Read More →
                 </button>
@@ -180,14 +149,14 @@ export default function BlogPage() {
           </div>
         ))}
       </div>
-
+  
       {/* Newsletter Signup */}
-      <div className="bg-[#111111] rounded-xl p-8 mb-16">
+      <div className="bg-[#111111] rounded-xl p-8 mb-16 border border-[#B146FF]/10">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl font-bold mb-4">
+          <h2 className="text-2xl font-bold mb-4 text-white">
             Subscribe to Our Newsletter
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-400 mb-6">
             Get the latest AI hardware news, product updates, and exclusive
             offers delivered directly to your inbox.
           </p>
@@ -195,17 +164,17 @@ export default function BlogPage() {
             <input
               type="email"
               placeholder="Your email address"
-              className="flex-1 px-4 py-3 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-3 rounded-md bg-black border border-[#B146FF]/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#B146FF] focus:border-transparent"
               required
             />
-            <Button type="submit">Subscribe</Button>
+            <Button type="submit" className="bg-[#B146FF] hover:bg-[#9333EA] text-white">Subscribe</Button>
           </form>
         </div>
       </div>
-
+  
       {/* Popular Tags */}
       <div>
-        <h3 className="text-xl font-bold mb-4">Popular Tags</h3>
+        <h3 className="text-xl font-bold mb-4 text-white">Popular Tags</h3>
         <div className="flex flex-wrap gap-2">
           {Array.from(
             new Set(blogPosts.flatMap((post) => post.tags))
@@ -213,7 +182,7 @@ export default function BlogPage() {
             <button
               key={tag}
               onClick={() => router.push(`/blog/tag/${tag.toLowerCase().replace(/\s+/g, "-")}`)}
-              className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-800 hover:bg-gray-200"
+              className="px-3 py-1 bg-[#111111] text-gray-300 rounded-full text-sm hover:bg-[#1a1a1a] border border-[#B146FF]/20"
             >
               {tag}
             </button>

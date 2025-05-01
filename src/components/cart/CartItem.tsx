@@ -9,8 +9,10 @@ interface CartItemProps {
   price: number;
   image: string;
   quantity: number;
+  selected: boolean; // Add this prop
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
+  onToggleSelect: (id: string) => void; // Add this prop
 }
 
 export function CartItem({
@@ -19,13 +21,23 @@ export function CartItem({
   price,
   image,
   quantity,
+  selected,
   onUpdateQuantity,
   onRemove,
+  onToggleSelect,
 }: CartItemProps) {
   const router = useRouter();
   
   return (
     <div className="flex items-center">
+      <div className="flex items-center pr-4">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(id)}
+          className="h-4 w-4 rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+        />
+      </div>
       <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
         <img
           src="https://media.istockphoto.com/id/2183748780/photo/artificial-intelligence.jpg?s=1024x1024&w=is&k=20&c=SSToyScegnkbVgfXpeU-9bQ8DVnUO7WV1U7KWw1oj_c="

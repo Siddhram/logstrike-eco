@@ -165,9 +165,9 @@ export default function Home() {
                 Explore Products
               </Button>
               <Button 
-                variant="outline" 
+                variant="outline"
                 size="lg" 
-                className="w-full sm:w-auto border-2 hover:bg-white/10 text-white border-white/50 text-lg px-8 py-6"
+                className="w-full sm:w-auto hover:bg-[#7C3AED] hover:text-white text-[#8B5CF6] text-lg px-8 py-6"
                 onClick={() => router.push('/blog')}
               >
                 Learn More

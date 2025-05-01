@@ -3,14 +3,37 @@
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { CartItem } from '@/components/cart/CartItem';
 
 export default function CartPage() {
   const { cart = [], removeFromCart, updateQuantity } = useCart();
   const router = useRouter();
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  const calculateTotal = () => {
-    if (!Array.isArray(cart)) return 0;
-    return cart.reduce((total, item) => total + (item?.price || 0) * (item?.quantity || 1), 0);
+  const calculateTotal = (items: any[]) => {
+    return items.reduce((total, item) => {
+      const price = typeof item.price === 'string' 
+        ? parseFloat(item.price.replace('$', '')) 
+        : item.price;
+      return total + (price || 0) * (item?.quantity || 1);
+    }, 0);
+  };
+
+  const getSelectedItems = () => {
+    return cart.filter(item => selectedItems.has(item.id));
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedItems(prev => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      return newSelected;
+    });
   };
 
   if (!Array.isArray(cart) || cart.length === 0) {
@@ -19,7 +42,7 @@ export default function CartPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold text-white mb-4">Your cart is empty</h2>
           <Button 
-            onClick={() => router.push('/shop')}
+            onClick={() => router.push('/products')}
             className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
           >
             Continue Shopping
@@ -32,11 +55,35 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-[#111111] py-12">
       <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold text-white mb-8">Shopping Cart</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Shopping Cart</h1>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={selectedItems.size === cart.length}
+              onChange={() => {
+                if (selectedItems.size === cart.length) {
+                  setSelectedItems(new Set());
+                } else {
+                  setSelectedItems(new Set(cart.map(item => item.id)));
+                }
+              }}
+              className="h-4 w-4 rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+            />
+            <span className="ml-2 text-white">Select All</span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {cart.map((item) => (
               <div key={item?.id} className="bg-[#1A1A1A] p-4 rounded-lg mb-4 flex items-center gap-4">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.has(item.id)}
+                  onChange={() => handleToggleSelect(item.id)}
+                  className="h-4 w-4 rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+                />
                 <img
                   src={item?.image}
                   alt={item?.name}
@@ -75,8 +122,13 @@ export default function CartPage() {
             <h2 className="text-xl font-bold text-white mb-4">Order Summary</h2>
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-gray-400">
-                <span>Subtotal</span>
-                <span>${calculateTotal().toFixed(2)}</span>
+                <span>Subtotal ({selectedItems.size || cart.length} items)</span>
+                <span>
+                  ${(selectedItems.size > 0 
+                    ? calculateTotal(getSelectedItems())
+                    : calculateTotal(cart)
+                  ).toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between text-gray-400">
                 <span>Shipping</span>
@@ -85,15 +137,23 @@ export default function CartPage() {
               <div className="border-t border-gray-700 pt-2 mt-2">
                 <div className="flex justify-between text-white font-bold">
                   <span>Total</span>
-                  <span>${calculateTotal().toFixed(2)}</span>
+                  <span>
+                    ${(selectedItems.size > 0 
+                      ? calculateTotal(getSelectedItems())
+                      : calculateTotal(cart)
+                    ).toFixed(2)}
+                  </span>
                 </div>
               </div>
             </div>
             <Button 
-              className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
+              className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white disabled:opacity-50"
               onClick={() => router.push('/checkout')}
+              disabled={selectedItems.size === 0}
             >
-              Proceed to Checkout
+              {selectedItems.size > 0 
+                ? `Checkout Selected (${selectedItems.size} items)`
+                : 'Select items to Checkout'}
             </Button>
           </div>
         </div>

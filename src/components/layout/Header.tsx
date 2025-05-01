@@ -7,8 +7,14 @@ import { SearchProvider } from '@/components/search/SearchProvider';
 import { SearchBox } from '@/components/search/SearchBox';
 import { SearchResults } from '@/components/search/SearchResults';
 import { usePathname } from 'next/navigation';
+import { useCart } from '@/context/CartContext';
 
 export function Header({ categories = [] }: { categories?: { name: string; link: string; image: string }[] }) {
+  const { cart = [] } = useCart();
+  const cartItemCount = Array.isArray(cart) 
+    ? cart.reduce((total, item) => total + (item?.quantity || 1), 0) 
+    : 0;
+
   const pathname = usePathname();
   const { user, logout, isAdmin } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -89,27 +95,51 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                         d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span className="absolute -top-2 -right-2 bg-[#8B5CF6] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  0
-                </span>
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-[#8B5CF6] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartItemCount}
+                  </span>
+                )}
               </Link>
 
-              {isAdmin && (
-                <Link 
-                  href="/admin"
-                  className="px-4 py-2 text-sm font-medium text-white bg-[#8B5CF6] rounded-md"
-                >
-                  Admin
-                </Link>
-              )}
-
-              {user && (
-                <button
-                  onClick={logout}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md"
-                >
-                  Logout
-                </button>
+              {!user ? (
+                <>
+                  <Link href="/login">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#8B5CF6]/10"
+                    >
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="bg-[#8B5CF6] text-white hover:bg-[#7C3AED]"
+                    >
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {isAdmin && (
+                    <Link 
+                      href="/admin"
+                      className="px-4 py-2 text-sm font-medium text-white bg-[#8B5CF6] rounded-md"
+                    >
+                      Admin
+                    </Link>
+                  )}
+                  <button
+                    onClick={logout}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md"
+                  >
+                    Logout
+                  </button>
+                </>
               )}
             </div>
           </div>

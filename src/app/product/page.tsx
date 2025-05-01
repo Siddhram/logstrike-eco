@@ -81,22 +81,32 @@ export default function ProductPage() {
   }
 
   if (error) {
-    return <div className="container mx-auto px-4 py-8 text-red-600">Error: {error}</div>;
+    return (
+      <div className="min-h-screen bg-[#111111] py-8">
+        <div className="container mx-auto px-4">
+          <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg">
+            Error: {error}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8 text-white">
-        {categoryFilter ? `${categoryFilter} Products` : 'Our Products'}
-      </h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {products.map((product) => (
-          <ProductCard 
-            key={product.id} 
-            {...product}
-            onClick={() => handleProductClick(product.id)}
-          />
-        ))}
+    <div className="min-h-screen bg-[#111111]">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8 text-white">
+          {categoryFilter ? `${categoryFilter} Products` : 'Our Products'}
+        </h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {products.map((product) => (
+            <ProductCard 
+              key={product.id} 
+              {...product}
+              onClick={() => handleProductClick(product.id)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

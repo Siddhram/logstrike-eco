@@ -34,7 +34,7 @@ export function ProductCard({ id, name, description, price, image, rating }: Pro
   };
 
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-lg">
+    <Card className="overflow-hidden transition-all hover:shadow-lg border-white">
       <div className="aspect-square relative overflow-hidden">
         <img
           src={image}
@@ -44,7 +44,7 @@ export function ProductCard({ id, name, description, price, image, rating }: Pro
       </div>
       <CardContent className="p-4">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="font-semibold text-lg truncate">
+          <h3 className="font-semibold text-lg truncate text-white">
             {name}
           </h3>
           {rating && (
@@ -54,12 +54,12 @@ export function ProductCard({ id, name, description, price, image, rating }: Pro
             </div>
           )}
         </div>
-        <p className="text-sm text-gray-500 line-clamp-2">{description}</p>
-        <div className="mt-3 font-bold text-lg">${price.toFixed(2)}</div>
+        <p className="text-sm text-white line-clamp-2">{description}</p>
+        <div className="mt-3 font-bold text-lg text-white">${price.toFixed(2)}</div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex gap-2">
         <Button 
-          className="w-full" 
+          className="w-full text-white" 
           variant="default"
           onClick={handleAddToCart}
         >
