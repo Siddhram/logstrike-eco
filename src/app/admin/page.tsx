@@ -79,19 +79,30 @@ export default function AdminDashboard() {
         setLoading(true);
         setError(null);
 
-        // Get users from Authentication
+        // Get users from Firestore
         const usersRef = collection(db, 'users');
         const querySnapshot = await getDocs(usersRef);
         
-        const usersData = querySnapshot.docs.map(doc => ({
-          uid: doc.id,
-          email: doc.data().email,
-          displayName: doc.data().displayName || 'N/A',
-          createdAt: doc.data().createdAt?.toDate() || new Date(),
-          ...doc.data()
-        }));
+        if (querySnapshot.empty) {
+          console.log("No users found in the collection");
+        } else {
+          console.log(`Found ${querySnapshot.docs.length} users`);
+        }
+        
+        const usersData = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log("User data:", data); // Debug log
+          return {
+            uid: doc.id,
+            email: data.email || 'N/A',
+            displayName: data.displayName || 'N/A',
+            createdAt: data.createdAt?.toDate() || new Date(),
+            status: data.status || 'Active',
+          };
+        });
 
         setUsers(usersData);
+        console.log("Users set:", usersData); // Debug log
       } catch (error) {
         console.error("Error fetching users:", error);
         setError(error instanceof Error ? error.message : 'Failed to fetch users');
@@ -582,23 +593,18 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
-          // Update the customers section UI
           {activeTab === "customers" && (
             <div>
               <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-white">Customers</h1>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#8B5CF6]/10"
-                >
-                  Export List
-                </Button>
+                <h1 className="text-3xl font-bold text-white">Customers</h1>
               </div>
+
               {loading ? (
-                <div className="text-white">Loading customers...</div>
+                <Loader />
               ) : error ? (
-                <div className="text-red-600">Error: {error}</div>
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+                  <p>{error}</p>
+                </div>
               ) : (
                 <div className="bg-[#1a1a1a] p-6 rounded-xl border border-[#8B5CF6]/20">
                   <div className="overflow-x-auto">
@@ -612,7 +618,7 @@ export default function AdminDashboard() {
                             Email
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Join Date
+                            Joined
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                             Status
@@ -630,35 +636,35 @@ export default function AdminDashboard() {
                             </td>
                           </tr>
                         ) : (
-                          users.map((user: any) => (
-                            <tr key={user.uid} className="hover:bg-[#8B5CF6]/10 transition-colors">
+                          users.map((user) => (
+                            <tr key={user.uid} className="hover:bg-[#8B5CF6]/5 transition-colors">
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                                {user.displayName || 'N/A'}
+                                {user.displayName}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                                 {user.email}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                                {user.createdAt instanceof Date 
+                                  ? user.createdAt.toLocaleDateString() 
+                                  : new Date(user.createdAt).toLocaleDateString()}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-900/50 text-green-400">
-                                  Active
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                  ${user.status === "Active" ? "bg-green-900/50 text-green-400" : "bg-red-900/50 text-red-400"}`}>
+                                  {user.status || "Active"}
                                 </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <button
-                                  onClick={() => router.push(`/admin/customers/${user.uid}`)}
-                                  className="text-[#8B5CF6] hover:text-[#9B7AE6] mr-4 transition-colors"
-                                >
-                                  View
-                                </button>
-                                <button
                                   onClick={() => handleDeleteUser(user.uid)}
-                                  className="text-red-500 hover:text-red-400 transition-colors"
+                                  className="text-red-500 hover:text-red-700 mr-4"
                                 >
                                   Delete
                                 </button>
+                                <Link href={`/admin/customers/${user.uid}`} className="text-blue-500 hover:text-blue-700">
+                                  View
+                                </Link>
                               </td>
                             </tr>
                           ))

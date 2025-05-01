@@ -3,13 +3,25 @@
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { CartItem } from '@/components/cart/CartItem';
+import { useState, useEffect } from 'react';
+import { db, auth } from '@/lib/firebase';
+import { collection, addDoc, doc } from 'firebase/firestore';
 
 export default function CartPage() {
   const { cart = [], removeFromCart, updateQuantity } = useCart();
   const router = useRouter();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+    
+    return () => unsubscribe();
+  }, []);
 
   const calculateTotal = (items: any[]) => {
     return items.reduce((total, item) => {
@@ -34,6 +46,47 @@ export default function CartPage() {
       }
       return newSelected;
     });
+  };
+
+  const handleCheckout = async () => {
+    if (!user) {
+      router.push('/auth/login?redirect=/cart');
+      return;
+    }
+
+    if (selectedItems.size === 0) {
+      alert('Please select items to checkout');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      
+      // Get selected items from cart
+      const itemsToCheckout = getSelectedItems();
+      const total = calculateTotal(itemsToCheckout);
+      
+      // Create a new document in the selected_items subcollection
+      const orderData = {
+        items: itemsToCheckout,
+        total: total,
+        createdAt: new Date(),
+        status: 'pending'
+      };
+      
+      // Add to the user's selected_items subcollection
+      const userDocRef = doc(db, 'users', user.uid);
+      const selectedItemsCollectionRef = collection(userDocRef, 'selected_items');
+      const docRef = await addDoc(selectedItemsCollectionRef, orderData);
+      
+      // Redirect to checkout page with the order ID
+      router.push(`/checkout?orderId=${docRef.id}`);
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      alert('There was an error processing your checkout. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!Array.isArray(cart) || cart.length === 0) {
@@ -148,12 +201,14 @@ export default function CartPage() {
             </div>
             <Button 
               className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white disabled:opacity-50"
-              onClick={() => router.push('/checkout')}
-              disabled={selectedItems.size === 0}
+              onClick={handleCheckout}
+              disabled={selectedItems.size === 0 || isProcessing}
             >
-              {selectedItems.size > 0 
-                ? `Checkout Selected (${selectedItems.size} items)`
-                : 'Select items to Checkout'}
+              {isProcessing 
+                ? 'Processing...' 
+                : selectedItems.size > 0 
+                  ? `Checkout Selected (${selectedItems.size} items)`
+                  : 'Select items to Checkout'}
             </Button>
           </div>
         </div>
