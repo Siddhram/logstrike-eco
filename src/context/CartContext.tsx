@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface CartItem {
   id: string;
@@ -16,7 +17,7 @@ interface CartContextType {
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
-  cartCount: number; // Add this to the interface
+  cartCount: number;
 }
 
 const CartContext = createContext<CartContextType>({
@@ -24,12 +25,13 @@ const CartContext = createContext<CartContextType>({
   addToCart: () => {},
   removeFromCart: () => {},
   updateQuantity: () => {},
-  cartCount: 0, // Add default value
+  cartCount: 0,
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const { user } = useAuth();
+  const router = useRouter();
   
   const getCartKey = () => {
     return `cart_${user?.uid || 'guest'}`;
@@ -54,28 +56,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return cart.length; // This will return the number of unique items
   };
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
-  }, []);
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
-
+  // Modified addToCart function to check authentication
   const addToCart = (item: CartItem) => {
+    // Check if user is logged in
+    if (!user) {
+      // Redirect to login page
+      router.push('/login?redirect=/cart');
+      return;
+    }
+    
     setCart(prevCart => {
-      const existingItem = prevCart.find(i => i.id === item.id);
+      const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
       if (existingItem) {
-        return prevCart.map(i =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+        // If item already exists, increase quantity
+        return prevCart.map(cartItem => 
+          cartItem.id === item.id 
+            ? { ...cartItem, quantity: cartItem.quantity + (item.quantity || 1) }
+            : cartItem
         );
+      } else {
+        // If item doesn't exist, add it to cart
+        return [...prevCart, { ...item, quantity: item.quantity || 1 }];
       }
-      return [...prevCart, item];
     });
   };
 
@@ -84,8 +86,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateQuantity = (id: string, quantity: number) => {
-    setCart(prevCart =>
-      prevCart.map(item =>
+    if (quantity <= 0) {
+      removeFromCart(id);
+      return;
+    }
+    
+    setCart(prevCart => 
+      prevCart.map(item => 
         item.id === id ? { ...item, quantity } : item
       )
     );
@@ -93,11 +100,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CartContext.Provider value={{
-      cart,
-      addToCart,
-      removeFromCart,
+      cart, 
+      addToCart, 
+      removeFromCart, 
       updateQuantity,
-      cartCount: getDistinctItemCount()
+      cartCount: cart.reduce((total, item) => total + (item.quantity || 1), 0)
     }}>
       {children}
     </CartContext.Provider>

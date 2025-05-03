@@ -1,32 +1,33 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, collection } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/Button';
+import { Loader } from '@/components/ui/Loader';
+import { OrderInfo } from '@/components/checkout/OrderInfoModal';
 
 interface OrderItem {
   id: string;
   name: string;
   price: number;
   quantity: number;
-  image: string;
+  image?: string;
 }
 
-interface Order {
-  id: string;
+interface CheckoutData {
   items: OrderItem[];
   total: number;
-  createdAt: any;
-  status: string;
+  subtotal: number;
+  tax: number;
+  shipping: number;
+  orderInfo?: OrderInfo;
 }
 
 export default function CheckoutPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const orderId = searchParams.get('orderId');
-  const [order, setOrder] = useState<Order | null>(null);
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shippingAddress, setShippingAddress] = useState('');
@@ -34,462 +35,304 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    const loadCheckoutData = () => {
       try {
         setLoading(true);
         const user = auth.currentUser;
         
         if (!user) {
-          router.push('/auth/login?redirect=/checkout');
+          router.push('/login?redirect=/checkout');
           return;
         }
         
-        if (!orderId) {
-          setError('No order ID provided');
+        // Get checkout data from localStorage
+        const storedData = localStorage.getItem('checkoutItems');
+        if (!storedData) {
+          setError('No items selected for checkout');
           return;
         }
         
-        // Fetch the order from the user's selected_items subcollection
-        const userDocRef = doc(db, 'users', user.uid);
-        const orderDocRef = doc(collection(userDocRef, 'selected_items'), orderId);
-        const orderDoc = await getDoc(orderDocRef);
-        
-        if (orderDoc.exists()) {
-          setOrder({
-            id: orderDoc.id,
-            ...orderDoc.data()
-          } as Order);
-        } else {
-          setError('Order not found');
-        }
+        const parsedData = JSON.parse(storedData);
+        setCheckoutData(parsedData);
       } catch (err) {
-        console.error('Error fetching order:', err);
-        setError('Failed to load order details');
+        console.error('Error loading checkout data:', err);
+        setError('Failed to load checkout details');
       } finally {
         setLoading(false);
       }
     };
     
-    fetchOrder();
-  }, [orderId, router]);
+    loadCheckoutData();
+  }, [router]);
 
   const handleCompleteOrder = async () => {
-    // Implementation for completing the order
-    // This would update the order status and redirect to a success page
-    alert('Order placed successfully!');
-    router.push('/');
+    if (!checkoutData || !shippingAddress) {
+      alert('Please fill in shipping address');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      const user = auth.currentUser;
+      
+      if (!user) {
+        router.push('/login?redirect=/checkout');
+        return;
+      }
+      
+      // Create order in Firestore
+      const orderData = {
+        userId: user.uid,
+        items: checkoutData.items,
+        total: checkoutData.total,
+        subtotal: checkoutData.subtotal,
+        tax: checkoutData.tax,
+        shipping: checkoutData.shipping,
+        shippingAddress,
+        paymentMethod,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        
+        // Add order info fields
+        order_type: checkoutData.orderInfo?.order_type || 1,
+        invoice_number: checkoutData.orderInfo?.invoice_number || '',
+        pickup_location: checkoutData.orderInfo?.pickup_location || '',
+        channel_id: checkoutData.orderInfo?.channel_id || 1,
+        order_date: checkoutData.orderInfo?.order_date || new Date().toISOString().split('T')[0],
+        payment_method: checkoutData.orderInfo?.payment_method || 'Prepaid',
+        
+        // Billing information
+        billing_customer_name: checkoutData.orderInfo?.billing_customer_name || '',
+        billing_last_name: checkoutData.orderInfo?.billing_last_name || '',
+        billing_address: checkoutData.orderInfo?.billing_address || '',
+        billing_city: checkoutData.orderInfo?.billing_city || '',
+        billing_pincode: checkoutData.orderInfo?.billing_pincode || '',
+        billing_state: checkoutData.orderInfo?.billing_state || '',
+        billing_country: checkoutData.orderInfo?.billing_country || '',
+        billing_email: checkoutData.orderInfo?.billing_email || '',
+        billing_phone: checkoutData.orderInfo?.billing_phone || '',
+        
+        // Shipping information (if different from billing)
+        shipping_is_billing: checkoutData.orderInfo?.shipping_is_billing || true,
+        shipping_customer_name: checkoutData.orderInfo?.shipping_customer_name || '',
+        shipping_last_name: checkoutData.orderInfo?.shipping_last_name || '',
+        shipping_address: checkoutData.orderInfo?.shipping_address || '',
+        shipping_city: checkoutData.orderInfo?.shipping_city || '',
+        shipping_pincode: checkoutData.orderInfo?.shipping_pincode || '',
+        shipping_state: checkoutData.orderInfo?.shipping_state || '',
+        shipping_country: checkoutData.orderInfo?.shipping_country || '',
+        shipping_email: checkoutData.orderInfo?.shipping_email || '',
+        shipping_phone: checkoutData.orderInfo?.shipping_phone || '',
+        
+        // Package and charges
+        shipping_charges: checkoutData.orderInfo?.shipping_charges || 0,
+        giftwrap_charges: checkoutData.orderInfo?.giftwrap_charges || 0,
+        transaction_charges: checkoutData.orderInfo?.transaction_charges || 0,
+        total_discount: checkoutData.orderInfo?.total_discount || 0,
+        package_length: checkoutData.orderInfo?.package_length || 10,
+        package_breadth: checkoutData.orderInfo?.package_breadth || 10,
+        package_height: checkoutData.orderInfo?.package_height || 5,
+        package_weight: checkoutData.orderInfo?.package_weight || 0.5,
+      };
+      
+      // Add to orders collection
+      const ordersRef = collection(db, 'orders');
+      await addDoc(ordersRef, orderData);
+      
+      // Clear checkout data
+      localStorage.removeItem('checkoutItems');
+      
+      alert('Order placed successfully!');
+      router.push('/');
+    } catch (err) {
+      console.error('Error completing order:', err);
+      alert('Failed to place order. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#111111] py-12">
-        <div className="container mx-auto px-4 text-center">
-          <div className="w-16 h-16 border-4 border-[#8B5CF6]/20 border-t-[#8B5CF6] rounded-full animate-spin mx-auto"></div>
-          <p className="text-white mt-4">Loading your order...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
-  if (error || !order) {
+  if (error) {
     return (
       <div className="min-h-screen bg-[#111111] py-12">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">
-            {error || 'No order found'}
-          </h2>
-          <Button 
-            onClick={() => router.push('/cart')}
-            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
-          >
-            Return to Cart
-          </Button>
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => router.push('/cart')}>Return to Cart</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#111111] to-[#1A1A1A] py-12">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <h1 className="text-3xl font-bold text-white mb-8 border-b border-purple-500 pb-4 inline-block">Checkout</h1>
+    <div className="min-h-screen bg-[#111111] py-12">
+      <div className="container mx-auto px-4">
+        <h1 className="text-3xl font-bold mb-8 text-white">Checkout</h1>
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column - Customer Information */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Billing & Shipping Details */}
-            <div className="bg-[#1A1A1A] p-6 rounded-lg shadow-lg border border-gray-800">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-                <span className="bg-purple-600 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">1</span>
-                Customer Information
-              </h2>
-              
-              {/* Billing Information */}
-              <div className="mb-6">
-                <h4 className="text-[#8B5CF6] text-sm font-medium mb-3 border-b border-gray-700 pb-2">Billing Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">First Name</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="First Name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Last Name</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="Last Name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Email</label>
-                    <input 
-                      type="email" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="Email"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Phone</label>
-                    <input 
-                      type="tel" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="Phone Number"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-gray-400 text-xs mb-1">Address</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="Street Address"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">City</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="City"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">State</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="State/Province"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Postal Code</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="Postal/ZIP Code"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Country</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="Country"
-                    />
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Shipping Information */}
+            <div className="bg-[#1A1A1A] p-6 rounded-xl border border-[#B146FF]/20">
+              <h2 className="text-xl font-semibold mb-4 text-white">Shipping Information</h2>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-300 mb-1">
+                    Shipping Address
+                  </label>
+                  <textarea
+                    id="address"
+                    rows={3}
+                    value={shippingAddress}
+                    onChange={(e) => setShippingAddress(e.target.value)}
+                    className="w-full p-3 bg-[#111111] border border-[#B146FF]/20 rounded-md text-white"
+                    placeholder="Enter your full shipping address"
+                    required
+                  />
                 </div>
-              </div>
-              
-              {/* Shipping Same as Billing Toggle */}
-              <div className="flex items-center mb-4 p-3 bg-[#252525] rounded-lg border border-gray-700">
-                <input
-                  type="checkbox"
-                  id="shipping_is_billing"
-                  className="h-4 w-4 text-[#8B5CF6] rounded focus:ring-purple-500"
-                  defaultChecked={true}
-                />
-                <label htmlFor="shipping_is_billing" className="ml-2 text-white text-sm">
-                  Shipping address same as billing
-                </label>
               </div>
             </div>
             
             {/* Payment Method */}
-            <div className="bg-[#1A1A1A] p-6 rounded-lg shadow-lg border border-gray-800">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-                <span className="bg-purple-600 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">2</span>
-                Payment Method
-              </h2>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-[#252525] p-4 rounded-lg border border-gray-700 hover:border-purple-500 cursor-pointer transition">
+            <div className="bg-[#1A1A1A] p-6 rounded-xl border border-[#B146FF]/20">
+              <h2 className="text-xl font-semibold mb-4 text-white">Payment Method</h2>
+              <div className="space-y-4">
+                <div className="flex items-center">
                   <input
-                    type="radio"
                     id="credit_card"
+                    type="radio"
                     name="payment"
                     value="credit_card"
                     checked={paymentMethod === 'credit_card'}
                     onChange={() => setPaymentMethod('credit_card')}
-                    className="hidden"
+                    className="h-4 w-4 text-[#B146FF]"
                   />
-                  <label htmlFor="credit_card" className="flex flex-col items-center cursor-pointer">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${paymentMethod === 'credit_card' ? 'bg-purple-600' : 'bg-gray-700'}`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                    </div>
-                    <span className="text-white text-sm">Credit Card</span>
+                  <label htmlFor="credit_card" className="ml-2 text-white">
+                    Credit Card
                   </label>
                 </div>
-                
-                <div className="bg-[#252525] p-4 rounded-lg border border-gray-700 hover:border-purple-500 cursor-pointer transition">
+                <div className="flex items-center">
                   <input
-                    type="radio"
                     id="paypal"
+                    type="radio"
                     name="payment"
                     value="paypal"
                     checked={paymentMethod === 'paypal'}
                     onChange={() => setPaymentMethod('paypal')}
-                    className="hidden"
+                    className="h-4 w-4 text-[#B146FF]"
                   />
-                  <label htmlFor="paypal" className="flex flex-col items-center cursor-pointer">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${paymentMethod === 'paypal' ? 'bg-purple-600' : 'bg-gray-700'}`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <span className="text-white text-sm">PayPal</span>
+                  <label htmlFor="paypal" className="ml-2 text-white">
+                    PayPal
                   </label>
-                </div>
-                
-                <div className="bg-[#252525] p-4 rounded-lg border border-gray-700 hover:border-purple-500 cursor-pointer transition">
-                  <input
-                    type="radio"
-                    id="cash"
-                    name="payment"
-                    value="cash"
-                    checked={paymentMethod === 'cash'}
-                    onChange={() => setPaymentMethod('cash')}
-                    className="hidden"
-                  />
-                  <label htmlFor="cash" className="flex flex-col items-center cursor-pointer">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${paymentMethod === 'cash' ? 'bg-purple-600' : 'bg-gray-700'}`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <span className="text-white text-sm">Cash on Delivery</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-            
-            {/* Shipping Details */}
-            <div className="bg-[#1A1A1A] p-6 rounded-lg shadow-lg border border-gray-800">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-                <span className="bg-purple-600 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">3</span>
-                Shipping Details
-              </h2>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-400 text-xs mb-1">Shipping Charges</label>
-                  <input 
-                    type="number" 
-                    className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                    placeholder="0.00"
-                    defaultValue="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-xs mb-1">Giftwrap Charges</label>
-                  <input 
-                    type="number" 
-                    className="w-full bg-[#252525] text-white p-3 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                    placeholder="0.00"
-                    defaultValue="0.00"
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-4 p-4 bg-[#252525] rounded-lg border border-gray-700">
-                <h3 className="text-white text-sm font-medium mb-3">Package Dimensions</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Length (cm)</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-[#333] text-white p-2 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="0"
-                      defaultValue="10"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Breadth (cm)</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-[#333] text-white p-2 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="0"
-                      defaultValue="10"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Height (cm)</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-[#333] text-white p-2 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="0"
-                      defaultValue="10"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-400 text-xs mb-1">Weight (kg)</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-[#333] text-white p-2 rounded-lg text-sm border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-                      placeholder="0"
-                      defaultValue="0.5"
-                    />
-                  </div>
                 </div>
               </div>
             </div>
           </div>
           
-          {/* Right Column - Order Summary */}
-          <div className="lg:col-span-5">
-            <div className="bg-[#1A1A1A] p-6 rounded-lg shadow-lg border border-gray-800 sticky top-6">
-              <h2 className="text-xl font-bold text-white mb-4 pb-3 border-b border-gray-700">Order Summary</h2>
-              
-              {/* Order Information */}
-              <div className="mb-4 p-4 bg-[#252525] rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-400 text-sm">Order ID:</span>
-                  <span className="text-white text-sm font-medium">{order.id.substring(0, 8)}...</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Order Date:</span>
-                  <span className="text-white text-sm">{new Date().toLocaleDateString()}</span>
-                </div>
-              </div>
+          {/* Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-[#1A1A1A] p-6 rounded-xl border border-[#B146FF]/20">
+              <h2 className="text-xl font-semibold mb-4 text-white">Order Summary</h2>
               
               {/* Order Items */}
-              <div className="mb-6">
-                <h3 className="text-white font-medium mb-3">Items ({order.items.length})</h3>
-                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                  {order.items.map((item) => {
-                    const quantity = item.quantity || 1;
-                    const itemTotal = item.price * quantity;
+              <div className="space-y-4 mb-6">
+                {checkoutData?.items.map((item) => (
+                  <div key={item.id} className="flex justify-between text-sm">
+                    <span className="text-gray-300">
+                      {item.name} x {item.quantity || 1}
+                    </span>
+                    <span className="text-white">
+                      ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Order Info */}
+              {checkoutData?.orderInfo && (
+                <div className="space-y-2 border-t border-[#B146FF]/20 pt-4 mb-4">
+                  <h3 className="text-sm font-medium text-white">Order Information</h3>
+                  <div className="text-xs text-gray-400 space-y-1">
+                    <p>Order Type: {checkoutData.orderInfo.order_type === 1 ? 'Forward' : 'Return'}</p>
+                    <p>Invoice: {checkoutData.orderInfo.invoice_number}</p>
+                    <p>Order Date: {checkoutData.orderInfo.order_date}</p>
+                    <p>Payment: {checkoutData.orderInfo.payment_method}</p>
                     
-                    return (
-                      <div key={item.id} className="flex gap-3 p-3 bg-[#252525] rounded-lg hover:bg-[#2a2a2a] transition">
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          className="w-16 h-16 object-cover rounded-md"
-                        />
-                        <div className="flex-1">
-                          <h4 className="text-white text-sm font-medium">{item.name}</h4>
-                          <div className="flex justify-between mt-1">
-                            <span className="text-gray-400 text-xs">Qty: {quantity}</span>
-                            <span className="text-white text-sm">${item.price.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between mt-1">
-                            <span className="text-gray-400 text-xs">Subtotal:</span>
-                            <span className="text-purple-400 text-sm font-medium">${itemTotal.toFixed(2)}</span>
-                          </div>
-                        </div>
+                    <div className="mt-2">
+                      <p className="text-white text-xs mb-1">Billing Address:</p>
+                      <p>{checkoutData.orderInfo.billing_customer_name} {checkoutData.orderInfo.billing_last_name}</p>
+                      <p>{checkoutData.orderInfo.billing_address}</p>
+                      <p>{checkoutData.orderInfo.billing_city}, {checkoutData.orderInfo.billing_state} {checkoutData.orderInfo.billing_pincode}</p>
+                      <p>{checkoutData.orderInfo.billing_country}</p>
+                      <p>Email: {checkoutData.orderInfo.billing_email}</p>
+                      <p>Phone: {checkoutData.orderInfo.billing_phone}</p>
+                    </div>
+                    
+                    {!checkoutData.orderInfo.shipping_is_billing && checkoutData.orderInfo.shipping_address && (
+                      <div className="mt-2">
+                        <p className="text-white text-xs mb-1">Shipping Address:</p>
+                        <p>{checkoutData.orderInfo.shipping_customer_name} {checkoutData.orderInfo.shipping_last_name}</p>
+                        <p>{checkoutData.orderInfo.shipping_address}</p>
+                        <p>{checkoutData.orderInfo.shipping_city}, {checkoutData.orderInfo.shipping_state} {checkoutData.orderInfo.shipping_pincode}</p>
+                        <p>{checkoutData.orderInfo.shipping_country}</p>
+                        <p>Email: {checkoutData.orderInfo.shipping_email}</p>
+                        <p>Phone: {checkoutData.orderInfo.shipping_phone}</p>
                       </div>
-                    );
-                  })}
+                    )}
+                    
+                    <div className="mt-2">
+                      <p className="text-white text-xs mb-1">Package Details:</p>
+                      <p>Dimensions: {checkoutData.orderInfo.package_length}cm × {checkoutData.orderInfo.package_breadth}cm × {checkoutData.orderInfo.package_height}cm</p>
+                      <p>Weight: {checkoutData.orderInfo.package_weight}kg</p>
+                    </div>
+                    
+                    <div className="mt-2">
+                      <p className="text-white text-xs mb-1">Additional Charges:</p>
+                      <p>Shipping: ${checkoutData.orderInfo.shipping_charges.toFixed(2)}</p>
+                      <p>Gift Wrap: ${checkoutData.orderInfo.giftwrap_charges.toFixed(2)}</p>
+                      <p>Transaction: ${checkoutData.orderInfo.transaction_charges.toFixed(2)}</p>
+                      <p>Discount: ${checkoutData.orderInfo.total_discount.toFixed(2)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Order Totals */}
+              <div className="space-y-2 border-t border-[#B146FF]/20 pt-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-300">Subtotal</span>
+                  <span className="text-white">${checkoutData?.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-300">Tax</span>
+                  <span className="text-white">${checkoutData?.tax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-300">Shipping</span>
+                  <span className="text-white">${checkoutData?.shipping.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold mt-2 pt-2 border-t border-[#B146FF]/20">
+                  <span className="text-white">Total</span>
+                  <span className="text-white">${checkoutData?.total.toFixed(2)}</span>
                 </div>
               </div>
               
-              {/* Price Summary */}
-              <div className="bg-[#252525] p-4 rounded-lg mb-6">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-400">Subtotal</span>
-                  <span className="text-white">${calculateOrderTotal().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-400">Shipping</span>
-                  <span className="text-white">Free</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-400">Tax</span>
-                  <span className="text-white">${(calculateOrderTotal() * 0.1).toFixed(2)}</span>
-                </div>
-                <div className="border-t border-gray-700 mt-3 pt-3 flex justify-between">
-                  <span className="text-white font-bold">Total</span>
-                  <span className="text-purple-400 font-bold text-xl">
-                    ${(calculateOrderTotal() + calculateOrderTotal() * 0.1).toFixed(2)}
-                  </span>
-                </div>
+              {/* Place Order Button */}
+              <div className="mt-6">
+                <Button
+                  className="w-full bg-[#B146FF] hover:bg-[#9333EA] text-white"
+                  onClick={handleCompleteOrder}
+                  disabled={isProcessing || !shippingAddress}
+                >
+                  {isProcessing ? 'Processing...' : 'Place Order'}
+                </Button>
               </div>
-              
-              {/* Additional Information */}
-              <div className="mb-6">
-                <div className="flex items-center mb-3">
-                  <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-300 text-sm">Free shipping on all orders</span>
-                </div>
-                <div className="flex items-center mb-3">
-                  <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-300 text-sm">30-day money-back guarantee</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center mr-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-300 text-sm">Secure payment processing</span>
-                </div>
-              </div>
-              
-              {/* Complete Order Button */}
-              <Button 
-                className="w-full bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] text-white py-4 rounded-lg font-medium text-lg shadow-lg disabled:opacity-50 transition-all duration-300"
-                onClick={handleCompleteOrder}
-                disabled={isProcessing || !shippingAddress}
-              >
-                {isProcessing ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2"></div>
-                    Processing...
-                  </div>
-                ) : (
-                  'Complete Order'
-                )}
-              </Button>
-              
-              <p className="text-gray-400 text-xs text-center mt-4">
-                By completing your purchase, you agree to our <a href="#" className="text-purple-400 hover:underline">Terms of Service</a> and <a href="#" className="text-purple-400 hover:underline">Privacy Policy</a>
-              </p>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-  
-  // Add this helper function to calculate the total
-  function calculateOrderTotal() {
-    if (!order || !order.items) return 0;
-    
-    return order.items.reduce((total, item) => {
-      const quantity = item.quantity || 1;
-      return total + (item.price * quantity);
-    }, 0);
-  }
 }

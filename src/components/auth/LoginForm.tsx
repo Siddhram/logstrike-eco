@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { login, loading } = useAuth();
+  
+  // Get the redirect URL from query parameters
+  const redirectUrl = searchParams.get('redirect') || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +22,8 @@ export function LoginForm() {
 
     try {
       await login(email, password);
-      router.push('/'); // Redirect to home page after successful login
+      // Redirect to the specified URL after successful login
+      router.push(redirectUrl);
     } catch (err) {
       setError('Invalid email or password');
     }

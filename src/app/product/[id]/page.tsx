@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/context/CartContext';
 import { Loader } from "@/components/ui/Loader";
+import { useAuth } from '@/context/AuthContext';
 
 interface Product {
   id: string;
@@ -26,6 +27,7 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -84,6 +86,12 @@ export default function ProductDetailPage() {
   if (!product) return <div className="container mx-auto px-4 py-8">Product not found</div>;
 
   const handleAddToCart = () => {
+    if (!user) {
+      // Redirect to login page with return URL
+      router.push(`/login?redirect=/product/${params.id}`);
+      return;
+    }
+    
     if (product) {
       addToCart({
         id: product.id,

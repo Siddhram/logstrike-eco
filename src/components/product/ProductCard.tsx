@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useAuth } from '@/context/AuthContext'; // Add this import
 
 interface Product {
   id: string;
@@ -20,6 +21,7 @@ interface ProductCardProps extends Product {
 export function ProductCard({ id, name, description, price, image, rating }: ProductCardProps) {
   const router = useRouter();
   const { addToCart } = useCart();
+  const { user } = useAuth(); // Add this to check user login status
 
   const handleViewDetails = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,7 +32,14 @@ export function ProductCard({ id, name, description, price, image, rating }: Pro
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart({ id, name, price, image });
-    toast.success("Added to cart!");
+    
+    // Only show toast if user is logged in
+    if (user) {
+      toast.success("Added to cart!");
+    } else {
+      // Optionally redirect to login page
+      router.push(`/login?redirect=/product/${id}`);
+    }
   };
 
   return (

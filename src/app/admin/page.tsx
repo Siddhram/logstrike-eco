@@ -79,30 +79,25 @@ export default function AdminDashboard() {
         setLoading(true);
         setError(null);
 
-        // Get users from Firestore
-        const usersRef = collection(db, 'users');
-        const querySnapshot = await getDocs(usersRef);
+        // Use the Admin API endpoint to fetch users instead of direct Firestore access
+        const response = await fetch('/api/admin/users');
         
-        if (querySnapshot.empty) {
-          console.log("No users found in the collection");
-        } else {
-          console.log(`Found ${querySnapshot.docs.length} users`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
         }
         
-        const usersData = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          console.log("User data:", data); // Debug log
-          return {
-            uid: doc.id,
-            email: data.email || 'N/A',
-            displayName: data.displayName || 'N/A',
-            createdAt: data.createdAt?.toDate() || new Date(),
-            status: data.status || 'Active',
-          };
-        });
+        const usersData = await response.json();
+        
+        // Transform the data to match your expected format
+        const formattedUsers = usersData.map(user => ({
+          uid: user.uid,
+          email: user.email || 'N/A',
+          displayName: user.displayName || 'N/A',
+          createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
+          status: 'Active'
+        }));
 
-        setUsers(usersData);
-        console.log("Users set:", usersData); // Debug log
+        setUsers(formattedUsers);
       } catch (error) {
         console.error("Error fetching users:", error);
         setError(error instanceof Error ? error.message : 'Failed to fetch users');

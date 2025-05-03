@@ -8,6 +8,7 @@ import { CartSummary } from '@/components/cart/CartSummary';
 import { useCart } from '@/context/CartContext';
 import { auth } from '@/lib/firebase';
 import { Loader } from "@/components/ui/Loader";
+import { OrderInfoModal, OrderInfo } from '@/components/checkout/OrderInfoModal';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -18,6 +19,7 @@ export default function CartPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [billDetails, setBillDetails] = useState(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -35,7 +37,7 @@ export default function CartPage() {
         quantity: item.quantity || 1
       }));
   
-      const response = await fetch('YOUR_CLOUD_FUNCTION_URL', {
+      const response = await fetch('https://billing-826104264349.asia-south1.run.app', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -84,14 +86,16 @@ export default function CartPage() {
         return;
       }
 
-      // Create order in your database
-      const orderData = {
-        userId: user.uid,
+      // Store selected items in localStorage for checkout page to access
+      localStorage.setItem('checkoutItems', JSON.stringify({
         items: selectedProducts,
-        total: billDetails?.total || 0,
-        status: 'pending'
-      };
+        total: parseFloat(billDetails?.total || "0"),
+        subtotal: parseFloat(billDetails?.subtotal || "0"),
+        tax: parseFloat(billDetails?.tax || "0"),
+        shipping: parseFloat(billDetails?.shipping || "0")
+      }));
 
+      // Navigate to checkout page
       router.push('/checkout');
     } catch (error) {
       console.error('Checkout error:', error);
@@ -113,6 +117,48 @@ export default function CartPage() {
       newSelected.add(itemId);
     }
     setSelectedItems(newSelected);
+  };
+
+  const handleCheckoutClick = () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    const selectedProducts = getSelectedItems();
+    if (selectedProducts.length === 0) {
+      alert('Please select items to checkout');
+      return;
+    }
+
+    // Open the order info modal
+    setIsOrderModalOpen(true);
+  };
+
+  const handleOrderInfoSubmit = async (orderInfo: OrderInfo) => {
+    try {
+      setIsProcessing(true);
+      const selectedProducts = getSelectedItems();
+      
+      // Store selected items and order info in localStorage for checkout page to access
+      localStorage.setItem('checkoutItems', JSON.stringify({
+        items: selectedProducts,
+        total: parseFloat(billDetails?.total || "0"),
+        subtotal: parseFloat(billDetails?.subtotal || "0"),
+        tax: parseFloat(billDetails?.tax || "0"),
+        shipping: parseFloat(billDetails?.shipping || "0"),
+        orderInfo: orderInfo
+      }));
+
+      // Close modal and navigate to checkout page
+      setIsOrderModalOpen(false);
+      router.push('/checkout');
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to process checkout');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -184,10 +230,17 @@ export default function CartPage() {
                   shipping={billDetails?.shipping || "0.00"}
                   giftwrap={billDetails?.giftwrap || "0.00"}
                   total={billDetails?.total || "0.00"}
-                  onCheckout={handleCheckout}
+                  onCheckout={handleCheckoutClick}
                 />
               </Elements>
             </div>
+            
+            {/* Order Info Modal */}
+            <OrderInfoModal 
+              isOpen={isOrderModalOpen}
+              onClose={() => setIsOrderModalOpen(false)}
+              onSubmit={handleOrderInfoSubmit}
+            />
           </div>
         )}
       </div>
