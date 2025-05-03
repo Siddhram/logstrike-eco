@@ -154,121 +154,124 @@ export default function CreateBlogPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Create New Blog</h1>
-      
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={editingBlogId ? handleUpdate : handleSubmit} className="max-w-2xl space-y-4">
-        <div>
-          <label htmlFor="title" className="block mb-1 font-medium">
-            Title
-          </label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-2 border rounded-md"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="content" className="block mb-1 font-medium">
-            Content
-          </label>
-          {isClient && (
-            <Editor
-              apiKey="bur29i80vwrr8x5j4jt14n6mdpgo2av5je0lrp5q9j17xqb6"
-              value={content}
-              onEditorChange={(newContent) => setContent(newContent)}
-              init={{
-                height: 500,
-                menubar: true,
-                plugins: [
-                  'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'print', 'preview', 'anchor',
-                  'searchreplace', 'code', 'fullscreen',
-                  'insertdatetime', 'media', 'table', 'paste', 'help', 'wordcount'
-                ],
-                toolbar: 'undo redo | formatselect | bold italic backcolor | \
-                  alignleft aligncenter alignright alignjustify | \
-                  bullist numlist outdent indent | removeformat | help'
-              }}
-            />
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="imageUrl" className="block mb-1 font-medium">
-            Image URL (optional)
-          </label>
-          <input
-            id="imageUrl"
-            type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading 
-            ? (editingBlogId ? 'Updating...' : 'Creating...') 
-            : (editingBlogId ? 'Update Blog' : 'Create Blog')
-          }
-        </button>
+    <div className="min-h-screen bg-black py-12">
+      <div className="container mx-auto px-4">
+        <h1 className="text-4xl font-bold text-white mb-8">Create New Blog</h1>
         
-        {editingBlogId && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingBlogId(null);
-              setTitle('');
-              setDescription('');
-              setImageUrl('');
-            }}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-          >
-            Cancel Edit
-          </button>
+        {error && (
+          <div className="mb-6 p-4 bg-red-900/50 border border-red-500 text-red-400 rounded-lg">
+            {error}
+          </div>
         )}
-      </form>
 
-      {/* User's Blogs List */}
-      <div className="mt-12">
-        <h2 className="text-xl font-bold mb-4">Your Blogs</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {userBlogs.map((blog) => (
-            <div key={blog.id} className="bg-white rounded-lg shadow-md p-4">
-              <h3 className="text-lg font-semibold mb-2">{blog.title}</h3>
-              <div 
-                dangerouslySetInnerHTML={{ __html: blog.description }} 
-                className="text-gray-600 mb-4 line-clamp-3"
+        <form onSubmit={editingBlogId ? handleUpdate : handleSubmit} className="max-w-3xl space-y-6">
+          <div>
+            <label htmlFor="title" className="block mb-2 text-lg font-medium text-white">
+              Title
+            </label>
+            <input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full p-3 bg-[#111111] border border-[#B146FF]/20 rounded-lg text-white focus:outline-none focus:border-[#B146FF] transition-colors"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="content" className="block mb-2 text-lg font-medium text-white">
+              Content
+            </label>
+            {isClient && (
+              <Editor
+                apiKey="your-api-key"
+                value={content}
+                onEditorChange={(newContent) => setContent(newContent)}
+                init={{
+                  height: 500,
+                  menubar: true,
+                  plugins: [
+                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                    'searchreplace', 'code', 'fullscreen', 'media', 'table', 'wordcount'
+                  ],
+                  toolbar: 'formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist | removeformat',
+                  skin: 'oxide-dark',
+                  content_css: 'dark',
+                }}
               />
-              {blog.imageUrl && (
-                <img
-                  src={blog.imageUrl}
-                  alt={blog.title}
-                  className="w-full h-32 object-cover mb-4"
-                />
-              )}
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="imageUrl" className="block mb-2 text-lg font-medium text-white">
+              Image URL (optional)
+            </label>
+            <input
+              id="imageUrl"
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className="w-full p-3 bg-[#111111] border border-[#B146FF]/20 rounded-lg text-white focus:outline-none focus:border-[#B146FF] transition-colors"
+            />
+          </div>
+
+          <div className="flex space-x-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-3 bg-[#B146FF] text-white rounded-lg hover:bg-[#9333EA] disabled:opacity-50 transition-colors"
+            >
+              {loading 
+                ? (editingBlogId ? 'Updating...' : 'Creating...') 
+                : (editingBlogId ? 'Update Blog' : 'Create Blog')
+              }
+            </button>
+            
+            {editingBlogId && (
               <button
-                onClick={() => handleEdit(blog)}
-                className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                type="button"
+                onClick={() => {
+                  setEditingBlogId(null);
+                  setTitle('');
+                  setDescription('');
+                  setImageUrl('');
+                }}
+                className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
               >
-                Edit
+                Cancel Edit
               </button>
-            </div>
-          ))}
+            )}
+          </div>
+        </form>
+
+        {/* User's Blogs List with updated styling */}
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold text-white mb-6">Your Blogs</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {userBlogs.map((blog) => (
+              <div key={blog.id} className="bg-[#111111] rounded-xl p-6 border border-[#B146FF]/20">
+                <h3 className="text-xl font-semibold text-white mb-3">{blog.title}</h3>
+                <div 
+                  dangerouslySetInnerHTML={{ __html: blog.description }} 
+                  className="text-gray-400 mb-4 line-clamp-3"
+                />
+                {blog.imageUrl && (
+                  <img
+                    src={blog.imageUrl}
+                    alt={blog.title}
+                    className="w-full h-40 object-cover rounded-lg mb-4"
+                  />
+                )}
+                <button
+                  onClick={() => handleEdit(blog)}
+                  className="px-4 py-2 bg-[#B146FF] text-white rounded-lg hover:bg-[#9333EA] transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

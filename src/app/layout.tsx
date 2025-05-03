@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
-import { Header } from "@/components/layout/Header";
+import { MainHeader } from '@/components/layout/Header';
 import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "sonner";
+// Remove the named import
+import Header from '@/components/layout/Header';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,17 +27,17 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="bg-[#111111]">
+      <body>
         <AuthProvider>
           <CartProvider>
             <Header />
-            <main className="bg-[#111111]">{children}</main>
+            <main>{children}</main>
             <Footer />
-            <Toaster position="top-right" />
+            <Toaster />
           </CartProvider>
         </AuthProvider>
       </body>

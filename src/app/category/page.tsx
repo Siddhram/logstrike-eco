@@ -26,7 +26,7 @@ export default function CategoriesPage() {
         const categoriesData = categoriesSnapshot.docs.map(doc => ({
           id: doc.id,
           name: doc.data().name,
-          image: doc.data().image || "https://media.istockphoto.com/id/2183748780/photo/artificial-intelligence.jpg?s=1024x1024&w=is&k=20&c=SSToyScegnkbVgfXpeU-9bQ8DVnUO7WV1U7KWw1oj_c="
+          image: doc.data().image || "https://plus.unsplash.com/premium_photo-1683120963435-6f9355d4a776?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fGFpfGVufDB8fDB8fHww"
         }));
         
         setCategories(categoriesData);

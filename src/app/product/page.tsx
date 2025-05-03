@@ -5,6 +5,7 @@ import { ProductCard } from '@/components/product/ProductCard';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Loader } from "@/components/ui/Loader";
 
 interface Product {
   id: string;
@@ -68,16 +69,7 @@ export default function ProductPage() {
   }, [categoryFilter]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#111111]">
-        <div className="relative">
-          <div className="w-20 h-20 border-4 border-[#8B5CF6]/20 rounded-full animate-spin">
-            <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-[#8B5CF6] rounded-full animate-spin"></div>
-          </div>
-          <p className="mt-4 text-[#8B5CF6] text-lg font-medium">Loading...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   if (error) {

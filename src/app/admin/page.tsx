@@ -230,29 +230,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#111111]">
-      <div className="bg-[#1a1a1a] border-b border-[#8B5CF6]/20 px-6 py-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold text-white">AI CHIP STORE</h1>
-          <div className="flex gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#8B5CF6]/10"
-              onClick={() => router.push('/login')}
-            >
-              Login
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              className="bg-[#8B5CF6] text-white hover:bg-[#7C3AED]"
-              onClick={() => router.push('/signup')}
-            >
-              Sign Up
-            </Button>
-          </div>
-        </div>
-      </div>
       <div className="flex">
         {/* Sidebar */}
         <div className="w-64 bg-[#1a1a1a] shadow-lg h-screen sticky top-0 border-r border-[#8B5CF6]/20">

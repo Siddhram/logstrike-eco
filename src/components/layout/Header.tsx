@@ -9,11 +9,11 @@ import { SearchResults } from '@/components/search/SearchResults';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 
-export function Header({ categories = [] }: { categories?: { name: string; link: string; image: string }[] }) {
+// Change the export statement at the beginning of the file
+export default function Header({ categories = [] }: { categories?: { name: string; link: string; image: string }[] }) {
   const { cart = [] } = useCart();
-  const cartItemCount = Array.isArray(cart) 
-    ? cart.reduce((total, item) => total + (item?.quantity || 1), 0) 
-    : 0;
+  // Update cart count to show distinct items
+  const cartItemCount = Array.isArray(cart) ? cart.length : 0;
 
   const pathname = usePathname();
   const { user, logout, isAdmin } = useAuth();
@@ -23,7 +23,11 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
   const searchResultsRef = React.useRef<HTMLDivElement>(null);
 
   // Move the isActiveLink function here, before it's used
+  // Update the isActiveLink function to match the correct paths
+  // Update the isActiveLink function
   const isActiveLink = (path: string) => {
+    if (path === '/products') return pathname === '/product' ? 'bg-[#7C3AED]' : '';
+    if (path === '/blog' && pathname === '/blogs') return 'bg-[#7C3AED]';
     return pathname === path ? 'bg-[#7C3AED]' : '';
   };
 
@@ -158,14 +162,15 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
               >
                 HOME
               </Link>
+              {/* Update the shop link */}
               <Link 
                 href="/products" 
-                className={`hover:bg-[#7C3AED] px-4 py-3 ${isActiveLink('/shop')}`}
+                className={`hover:bg-[#7C3AED] px-4 py-3 ${isActiveLink('/products')}`}
               >
                 SHOP
               </Link>
               <Link 
-                href="/blog" 
+                href="/blogs" 
                 className={`hover:bg-[#7C3AED] px-4 py-3 ${isActiveLink('/blog')}`}
               >
                 BLOG
@@ -215,7 +220,7 @@ export function Header({ categories = [] }: { categories?: { name: string; link:
                 Shop
               </Link>
               <Link 
-                href="/blog" 
+                href="/blogs" 
                 className={`p-2 text-gray-700 hover:bg-gray-100 rounded-md ${pathname === '/blog' ? 'bg-gray-100' : ''}`}
               >
                 Blog

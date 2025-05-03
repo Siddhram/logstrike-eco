@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 interface CartItem {
   id: string;
@@ -15,6 +16,7 @@ interface CartContextType {
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  cartCount: number; // Add this to the interface
 }
 
 const CartContext = createContext<CartContextType>({
@@ -22,10 +24,35 @@ const CartContext = createContext<CartContextType>({
   addToCart: () => {},
   removeFromCart: () => {},
   updateQuantity: () => {},
+  cartCount: 0, // Add default value
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const { user } = useAuth();
+  
+  const getCartKey = () => {
+    return `cart_${user?.uid || 'guest'}`;
+  };
+
+  // Load cart from localStorage on mount or when user changes
+  useEffect(() => {
+    const savedCart = localStorage.getItem(getCartKey());
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    } else {
+      setCart([]); // Reset cart if no saved cart found for this user
+    }
+  }, [user]); // Re-run when user changes
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(getCartKey(), JSON.stringify(cart));
+  }, [cart, user]);
+
+  const getDistinctItemCount = () => {
+    return cart.length; // This will return the number of unique items
+  };
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -65,7 +92,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity }}>
+    <CartContext.Provider value={{
+      cart,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      cartCount: getDistinctItemCount()
+    }}>
       {children}
     </CartContext.Provider>
   );
