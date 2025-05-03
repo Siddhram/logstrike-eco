@@ -92,6 +92,7 @@ export default function CreateBlogPage() {
       setTitle('');
       setDescription('');
       setImageUrl('');
+      setContent(''); // Add this line to clear the editor content
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create blog');
     } finally {
@@ -185,7 +186,7 @@ export default function CreateBlogPage() {
             </label>
             {isClient && (
               <Editor
-                apiKey="your-api-key"
+                apiKey="bur29i80vwrr8x5j4jt14n6mdpgo2av5je0lrp5q9j17xqb6"
                 value={content}
                 onEditorChange={(newContent) => setContent(newContent)}
                 init={{
